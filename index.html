@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>跑酷者的天台</title>
+    <style>
+        /* 🎨 装修区：背景渐变 + 文字样式 */
+        body {
+            background: linear-gradient(180deg, #ff7e5f, #feb47b);
+            font-family: "Microsoft YaHei", sans-serif;
+            text-align: center;
+            color: #fff;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 48px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+        h2 {
+            font-size: 30px;
+            margin-top: 40px;
+        }
+        .author {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        .intro {
+            font-size: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        ul li {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 10px 20px;
+            margin: 8px;
+            font-size: 18px;
+        }
+        /* 🎮 游戏区 */
+        #game {
+            position: relative;
+            width: 600px;
+            height: 220px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.35);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+        }
+        #player {
+            position: absolute;
+            bottom: 20px;
+            left: 60px;
+            font-size: 44px;
+            line-height: 1;
+            z-index: 3;
+            transform: scaleX(-1);   /* 让跑酷小人面朝右边！ */
+        }
+        #player.jumping {
+            animation: jump 0.9s ease;
+        }
+        @keyframes jump {
+            0%   { bottom: 20px; }
+            20%  { bottom: 72px; }
+            75%  { bottom: 72px; }
+            100% { bottom: 20px; }
+        }
+        #player.sliding {
+            font-size: 26px;
+        }
+        /* 障碍物：地面障碍（跳过去） */
+        .obstacle {
+            position: absolute;
+            bottom: 20px;
+            width: 36px;
+            height: 36px;
+            background: #2d2d2d;
+            border-radius: 6px;
+        }
+        /* 障碍物：空中障碍（滑铲钻过去） */
+        .obstacle.high {
+            bottom: 55px;
+            height: 28px;
+            width: 30px;
+            background: #5a4a3a;
+            border-radius: 4px;
+        }
+        /* 🕳️ 障碍物：裂缝（跳过去，滑铲会掉进去） */
+        .obstacle.crack {
+            bottom: 0;
+            height: 20px;
+            width: 52px;
+            background: #0a0a0a;
+            border-radius: 0;
+        }
+        /* 💰 金币（跑过去或跳起来捡！） */
+        .coin {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #ffe066, #f5b301);
+            border: 2px solid #d98e00;
+            box-shadow: 0 0 8px rgba(255, 200, 0, 0.7);
+            z-index: 2;
+            animation: spin 0.8s ease-in-out infinite;   /* 金币转动！ */
+        }
+        @keyframes spin {
+            0%, 100% { transform: scaleX(1); }
+            50%      { transform: scaleX(0.3); }
+        }
+        /* ✨ 捡到金币的 +10 飘字 */
+        .plus {
+            position: absolute;
+            bottom: 100px;
+            left: 95px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffe066;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            animation: floatUp 0.8s ease-out forwards;
+            pointer-events: none;
+            z-index: 3;
+        }
+        @keyframes floatUp {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(-30px); }
+        }
+        /* 🛣️ 游戏地面 */
+        #ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.18);
+            z-index: 1;
+        }
+        .tip {
+            font-size: 14px;
+            opacity: 0.85;
+            margin-top: 8px;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            font-size: 16px;
+            margin: 0;
+        }
+        #sprinttip {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 16px;
+            margin: 0;
+            background: rgba(255,255,255,0.25);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        #gameover {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 24px;
+            border-radius: 12px;
+            display: none;
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏙️ 欢迎来到我的天台</h1>
+    <p class="author">作者：跑酷者的天台</p>
+
+    <h2>📖 关于我</h2>
+    <p class="intro">我是一名城市跑酷爱好者！喜欢在高楼之间穿梭，翻越每一道障碍，在橙红色的夕阳下奔跑。欢迎常来我的天台坐坐！😄</p>
+
+    <h2>🏃 我的跑酷技能</h2>
+    <ul>
+        <li>🧗 翻墙</li>
+        <li>🤸 跳跃</li>
+        <li>🛹 滑铲</li>
+        <li>🏃 疾走</li>
+    </ul>
+
+    <h2>🎮 天台跑酷小游戏</h2>
+    <div id="game">
+        <p id="score">得分：0</p>
+        <p id="sprinttip" style="display:none;">💨 疾跑中！得分加倍！</p>
+        <div id="ground"></div>
+        <div id="player">🏃</div>
+        <p id="gameover">💥 游戏结束！点击重玩</p>
+    </div>
+    <p class="tip">👉 空格（或点击）：跳跃 · ↓键（或S键）：滑铲 · 按住Shift（或↑键）：疾跑💨 · 💰金币：+10分，跑过去就能捡！</p>
+
+    <script>
+        // ⚡ 电器区：让游戏跑起来！
+        var game = document.getElementById('game');
+        var player = document.getElementById('player');
+        var scoreText = document.getElementById('score');
+        var gameoverText = document.getElementById('gameover');
+        var sprinttip = document.getElementById('sprinttip');
+        var score = 0;
+        var speed = 7;             // 障碍物移动速度（像素/帧）
+        var sprinting = false;     // 是否在疾跑
+        var gameRunning = false;
+        var obstacles = [];
+        var coins = [];
+        var gameLoop = null;
+        var spawnTimer = null;
+        var coinTimer = null;
+
+        // 生成一个障碍物（随机：地面方块 / 空中横梁 / 裂缝）
+        function spawnObstacle() {
+            var o = document.createElement('div');
+            o.className = 'obstacle';
+            var r = Math.random();
+            if (r < 0.33) {
+                o.classList.add('high');    // 空中横梁 → 滑铲
+            } else if (r < 0.66) {
+                o.classList.add('crack');   // 裂缝 → 跳跃
+            }
+            // 剩下的是地面方块 → 跳跃
+            o.style.left = game.clientWidth + 'px';   // 从右边缘出发，慢慢滚进来
+            game.appendChild(o);
+            obstacles.push(o);
+        }
+
+        // 生成一枚金币（先检查前方没有陷阱才发，金币永远在路上安全区）
+        function spawnCoin() {
+            // 金币出生点附近有障碍物？这轮就不发，避免金币掉进陷阱里
+            for (var i = 0; i < obstacles.length; i++) {
+                var oLeft = parseFloat(obstacles[i].style.left);
+                if (!isNaN(oLeft) && Math.abs(oLeft - game.clientWidth) < 110) {
+                    return;
+                }
+            }
+            var c = document.createElement('div');
+            c.className = 'coin';
+            c.style.left = game.clientWidth + 'px';
+            c.style.bottom = '20px';   // 金币都在地面高度，跑过去就能捡！
+            game.appendChild(c);
+            coins.push(c);
+        }
+
+        // 捡到金币的 +10 飘字特效
+        function showPlus() {
+            var t = document.createElement('span');
+            t.className = 'plus';
+            t.textContent = '+10';
+            game.appendChild(t);
+            setTimeout(function () { t.remove(); }, 800);
+        }
+
+        // 每一帧：移动障碍物 + 加分 + 碰撞检测
+        function frame() {
+            if (!gameRunning) return;
+
+            // 疾跑时：障碍更快，得分翻倍！
+            var moveSpeed = sprinting ? speed + 4 : speed;
+            score += sprinting ? 2 : 1;
+            scoreText.textContent = '得分：' + score;
+            sprinttip.style.display = sprinting ? 'block' : 'none';
+
+            for (var i = obstacles.length - 1; i >= 0; i--) {
+                var o = obstacles[i];
+                var left = parseFloat(o.style.left);
+                if (isNaN(left)) left = game.clientWidth;
+                o.style.left = (left - moveSpeed) + 'px';
+
+                // 移出屏幕就删除
+                if (left < -60) {
+                    o.remove();
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+
+                // 碰撞检测（用两个方块的边缘位置判断）
+                var p = player.getBoundingClientRect();
+                var ob = o.getBoundingClientRect();
+                if (p.left < ob.right && p.right > ob.left && p.bottom >= ob.top && p.top < ob.bottom) {
+                    endGame();
+                    return;
+                }
+            }
+
+            // 💰 金币：移动 + 捡取（不致命，加分！）
+            for (var k = coins.length - 1; k >= 0; k--) {
+                var c = coins[k];
+                var cLeft = parseFloat(c.style.left);
+                if (isNaN(cLeft)) cLeft = game.clientWidth;
+                c.style.left = (cLeft - moveSpeed) + 'px';
+
+                // 移出屏幕就删除
+                if (cLeft < -40) {
+                    c.remove();
+                    coins.splice(k, 1);
+                    continue;
+                }
+
+                // 碰到小人 → 捡到金币！
+                var p2 = player.getBoundingClientRect();
+                var cr = c.getBoundingClientRect();
+                if (p2.left < cr.right && p2.right > cr.left && p2.bottom >= cr.top && p2.top < cr.bottom) {
+                    c.remove();
+                    coins.splice(k, 1);
+                    score += 10;
+                    scoreText.textContent = '得分：' + score;
+                    showPlus();
+                }
+            }
+        }
+
+        // 跳跃
+        function jump() {
+            if (!gameRunning) { startGame(); return; }
+            if (player.classList.contains('jumping') || player.classList.contains('sliding')) return;
+            player.classList.add('jumping');
+            setTimeout(function () { player.classList.remove('jumping'); }, 900);
+        }
+
+        // 滑铲 🛹
+        function slide() {
+            if (!gameRunning) { startGame(); return; }
+            if (player.classList.contains('jumping') || player.classList.contains('sliding')) return;
+            player.classList.add('sliding');
+            player.textContent = '🛹';
+            setTimeout(function () {
+                player.classList.remove('sliding');
+                player.textContent = '🏃';
+            }, 600);
+        }
+
+        // 开始 / 重新开始
+        function startGame() {
+            player.classList.remove('jumping', 'sliding');
+            player.textContent = '🏃';
+            obstacles.forEach(function (o) { o.remove(); });
+            obstacles = [];
+            coins.forEach(function (c) { c.remove(); });
+            coins = [];
+            score = 0;
+            scoreText.textContent = '得分：0';
+            sprinttip.style.display = 'none';
+            sprinting = false;
+            gameoverText.style.display = 'none';
+            gameRunning = true;
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            clearInterval(coinTimer);
+            gameLoop = setInterval(frame, 30);
+            spawnTimer = setInterval(function () {
+                if (gameRunning) spawnObstacle();
+            }, 1800);
+            coinTimer = setInterval(function () {
+                if (gameRunning) spawnCoin();
+            }, 1200);
+        }
+
+        // 游戏结束
+        function endGame() {
+            gameRunning = false;
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            clearInterval(coinTimer);
+            gameoverText.style.display = 'block';
+        }
+
+        // 监听操作：点击=跳跃，空格=跳跃，↓/S=滑铲，按住Shift/↑=疾跑
+        game.addEventListener('click', jump);
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'Space') { e.preventDefault(); jump(); }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); slide(); }
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                sprinting = true;
+            }
+        });
+        document.addEventListener('keyup', function (e) {
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ArrowUp') {
+                sprinting = false;
+            }
+        });
+    </script>
+
+</body>
+</html>
