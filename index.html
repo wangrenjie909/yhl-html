@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>跑酷者的天台</title>
     <style>
         /* 🎨 装修区：背景渐变 + 文字样式 */
@@ -42,10 +43,91 @@
             margin: 8px;
             font-size: 18px;
         }
+        /* 🫧 爱好可以点击切换模式！ */
+        #hobbies li {
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+        #hobbies li:hover {
+            background: rgba(255,255,255,0.45);
+            transform: scale(1.05);
+        }
+        #hobbies li.active {
+            background: #f5b301;
+            color: #3a2a00;
+            box-shadow: 0 0 12px rgba(255,200,0,0.8);
+        }
+        #hobby-status {
+            font-size: 16px;
+            margin-top: 12px;
+            min-height: 24px;
+        }
+        /* 🎵 音乐播放器（播放时顶替小游戏！） */
+        #musicplayer {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.35);
+            border-radius: 16px;
+            padding: 20px;
+            color: #fff;
+            user-select: none;
+        }
+        #mp-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        #mp-song {
+            font-size: 26px;
+            margin: 10px 0 16px;
+        }
+        #mp-controls button,
+        #mp-exit {
+            font-size: 15px;
+            padding: 8px 16px;
+            margin: 4px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #mp-controls button:hover,
+        #mp-exit:hover {
+            background: rgba(255,255,255,0.45);
+        }
+        #mp-list {
+            margin: 16px 0;
+        }
+        #mp-list .song-item {
+            display: inline-block;
+            padding: 8px 14px;
+            margin: 4px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.15);
+            cursor: pointer;
+            font-size: 15px;
+            transition: background 0.2s;
+        }
+        #mp-list .song-item:hover {
+            background: rgba(255,255,255,0.35);
+        }
+        #mp-list .song-item.current {
+            background: #f5b301;
+            color: #3a2a00;
+            font-weight: bold;
+        }
+        #mp-exit {
+            margin-top: 10px;
+            background: rgba(255,80,80,0.35);
+        }
         /* 🎮 游戏区 */
         #game {
             position: relative;
-            width: 600px;
+            width: 100%;
+            max-width: 600px;
             height: 220px;
             margin: 20px auto;
             background: rgba(0,0,0,0.35);
@@ -53,6 +135,7 @@
             overflow: hidden;
             cursor: pointer;
             user-select: none;
+            touch-action: manipulation;
         }
         #player {
             position: absolute;
@@ -148,6 +231,92 @@
             opacity: 0.85;
             margin-top: 8px;
         }
+        /* 🎥 视频区（在游戏下面） */
+        #video-section {
+            margin: 40px auto 20px;
+            max-width: 720px;
+        }
+        .video-box {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%;   /* 16:9 视频比例 */
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.4);
+        }
+        .video-box iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        /* 🌍 其他主题区（页面最底部） */
+        #theme-section {
+            margin: 40px auto 30px;
+        }
+        .theme-box {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .theme-card {
+            background: rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 20px 34px;
+            font-size: 22px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            user-select: none;
+        }
+        .theme-card:hover {
+            background: rgba(255,255,255,0.45);
+            transform: scale(1.06);
+        }
+        #theme-status {
+            font-size: 16px;
+            margin-top: 14px;
+            min-height: 24px;
+            opacity: 0.9;
+        }
+        /* 📱 手机端触屏按钮（默认隐藏，手机上显示） */
+        #touch-controls {
+            display: none;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        #touch-controls button {
+            font-size: 16px;
+            padding: 10px 22px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.3);
+            color: #fff;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+        #touch-controls button:active {
+            background: rgba(255,255,255,0.55);
+        }
+        /* 📱 手机端适配 */
+        @media (max-width: 640px) {
+            body { padding: 20px 10px; }
+            h1 { font-size: 30px; }
+            h2 { font-size: 22px; }
+            .intro { font-size: 16px; }
+            ul li { font-size: 15px; padding: 8px 14px; }
+            .theme-card { font-size: 18px; padding: 14px 22px; }
+            .tip { font-size: 12px; }
+            #mp-song { font-size: 20px; }
+            #player { font-size: 36px; }
+            #touch-controls { display: flex; }
+        }
         #score {
             position: absolute;
             top: 10px;
@@ -165,6 +334,35 @@
             padding: 4px 10px;
             border-radius: 12px;
         }
+        #speedtip {
+            position: absolute;
+            bottom: 6px;
+            left: 15px;
+            font-size: 14px;
+            margin: 0;
+            background: rgba(255,255,255,0.2);
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        /* 🫧 体力条（石头模式冲刺专用！） */
+        #stamina-bar {
+            position: absolute;
+            bottom: 6px;
+            right: 15px;
+            width: 110px;
+            height: 12px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+        #stamina-fill {
+            width: 100%;
+            height: 100%;
+            background: #4cd964;
+            border-radius: 8px;
+            transition: width 0.1s;
+        }
         #gameover {
             position: absolute;
             top: 40%;
@@ -176,6 +374,22 @@
             border-radius: 12px;
             display: none;
             z-index: 4;
+        }
+        /* 🪨 石头（跑步模式追你的大石头！） */
+        .rock {
+            position: absolute;
+            bottom: 20px;
+            width: 62px;
+            height: 52px;
+            background: radial-gradient(circle at 32% 30%, #b0b0b0, #6b6b6b);
+            border-radius: 50% 50% 46% 46%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+            z-index: 2;
+            animation: rockroll 0.5s linear infinite;   /* 石头边滚边追！ */
+        }
+        @keyframes rockroll {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -195,15 +409,57 @@
         <li>🏃 疾走</li>
     </ul>
 
+    <h2>🎮 我的爱好</h2>
+    <ul id="hobbies">
+        <li id="hobby-game">🎮 玩游戏</li>
+        <li id="hobby-run">🏃 跑步</li>
+        <li id="hobby-music">🎵 听音乐</li>
+    </ul>
+    <p id="hobby-status">👉 点一下上面的爱好，试试切换模式！</p>
+
     <h2>🎮 天台跑酷小游戏</h2>
     <div id="game">
         <p id="score">得分：0</p>
-        <p id="sprinttip" style="display:none;">💨 疾跑中！得分加倍！</p>
+        <p id="sprinttip" style="display:none;">💨 疾跑冲刺中！</p>
+        <p id="speedtip">⚡ 速度：0</p>
+        <div id="stamina-bar"><div id="stamina-fill"></div></div>
         <div id="ground"></div>
         <div id="player">🏃</div>
         <p id="gameover">💥 游戏结束！点击重玩</p>
     </div>
-    <p class="tip">👉 空格（或点击）：跳跃 · ↓键（或S键）：滑铲 · 按住Shift（或↑键）：疾跑💨 · 💰金币：+10分，跑过去就能捡！</p>
+
+    <div id="touch-controls">
+        <button id="btn-slide">🛹 滑铲</button>
+        <button id="btn-sprint">💨 冲刺</button>
+    </div>
+    <div id="musicplayer" style="display:none;">
+        <div id="mp-header">🎵 音乐模式</div>
+        <div id="mp-song">⭐ 小星星</div>
+        <div id="mp-controls">
+            <button id="mp-prev">⏮ 上一首</button>
+            <button id="mp-play">⏸ 暂停</button>
+            <button id="mp-next">⏭ 下一首</button>
+        </div>
+        <div id="mp-list"></div>
+        <button id="mp-exit">✖ 退出音乐模式，回到游戏</button>
+    </div>
+    <p class="tip" id="tipText">👉 🖱️ 鼠标点得越快，小人跑得越快！ · 空格/↑：跳跃 · ↓/S：滑铲 · Shift：疾跑💨 · 💰金币：+10分，跑过去就能捡！</p>
+
+    <div id="video-section">
+        <h2>🎥 酷炫跑酷视频</h2>
+        <div class="video-box">
+            <iframe src="https://player.bilibili.com/player.html?bvid=BV1Uz411v7QT&page=1&high_quality=1&danmaku=0" allowfullscreen="true" scrolling="no"></iframe>
+        </div>
+    </div>
+
+    <div id="theme-section">
+        <h2>🌍 其他主题</h2>
+        <div class="theme-box">
+            <div class="theme-card" id="theme-football">⚽ 足球</div>
+            <div class="theme-card" id="theme-moto">🏍️ 摩托车</div>
+        </div>
+        <p id="theme-status">👉 点一下主题卡片，看看会发生什么！</p>
+    </div>
 
     <script>
         // ⚡ 电器区：让游戏跑起来！
@@ -212,15 +468,30 @@
         var scoreText = document.getElementById('score');
         var gameoverText = document.getElementById('gameover');
         var sprinttip = document.getElementById('sprinttip');
+        var speedtip = document.getElementById('speedtip');
+        var staminaBar = document.getElementById('stamina-bar');
+        var staminaFill = document.getElementById('stamina-fill');
+        var stamina = 100;             // 当前体力
+        var MAX_STAMINA = 100;         // 体力上限
+        var STAMINA_DRAIN = 0.45;      // 冲刺时每帧消耗
+        var STAMINA_REGEN = 0.2;       // 休息时每帧恢复
         var score = 0;
-        var speed = 7;             // 障碍物移动速度（像素/帧）
+        var speed = 7;             // 基础移动速度（像素/帧）
         var sprinting = false;     // 是否在疾跑
+        var tapBoost = 0;          // 点击加速的额外速度！
+        var MAX_BOOST = 12;        // 点击加速上限（小人最高速度）
+        var TAP_POWER = 2.5;       // 每点一下加的速度
+        var DECAY = 0.08;          // 每帧速度衰减（不点就慢下来）
         var gameRunning = false;
         var obstacles = [];
         var coins = [];
         var gameLoop = null;
         var spawnTimer = null;
         var coinTimer = null;
+        var gameMode = 'obstacle';   // 'obstacle' 障碍跑酷 | 'rock' 石头追逐
+        var rock = null;             // 追你的大石头
+        var rockSpeed = 18;          // 石头速度（追得很凶！但比小人最高速19低，能逃！）
+        var tipText = document.getElementById('tipText');
 
         // 生成一个障碍物（随机：地面方块 / 空中横梁 / 裂缝）
         function spawnObstacle() {
@@ -236,6 +507,17 @@
             o.style.left = game.clientWidth + 'px';   // 从右边缘出发，慢慢滚进来
             game.appendChild(o);
             obstacles.push(o);
+        }
+
+        // 召唤追你的大石头！（石头在小人后面 = 左边）
+        function spawnRock() {
+            if (!rock) {
+                rock = document.createElement('div');
+                rock.className = 'rock';
+                game.appendChild(rock);
+            }
+            rock.style.display = 'block';
+            rock.style.left = '-100px';   // 从左边（小人身后）追上来！
         }
 
         // 生成一枚金币（先检查前方没有陷阱才发，金币永远在路上安全区）
@@ -259,7 +541,7 @@
         function showPlus() {
             var t = document.createElement('span');
             t.className = 'plus';
-            t.textContent = '+10';
+            t.style.left = (player.offsetLeft + 25) + 'px';
             game.appendChild(t);
             setTimeout(function () { t.remove(); }, 800);
         }
@@ -268,11 +550,31 @@
         function frame() {
             if (!gameRunning) return;
 
-            // 疾跑时：障碍更快，得分翻倍！
-            var moveSpeed = sprinting ? speed + 4 : speed;
-            score += sprinting ? 2 : 1;
+            // 🖱️ 点击加速会慢慢衰减——想跑快就要不停地点！
+            tapBoost = Math.max(0, tapBoost - DECAY);
+            var moveSpeed = speed + tapBoost + (sprinting ? 4 : 0);
+            // 跑得越快，得分越快！
+            score += Math.round(1 + moveSpeed * 0.3);
             scoreText.textContent = '得分：' + score;
             sprinttip.style.display = sprinting ? 'block' : 'none';
+            speedtip.textContent = '⚡ 速度：' + Math.round(moveSpeed);
+
+            // 🫧 石头模式的冲刺要消耗体力！
+            if (gameMode === 'rock') {
+                if (sprinting) {
+                    stamina -= STAMINA_DRAIN;
+                    if (stamina <= 0) {
+                        stamina = 0;
+                        sprinting = false;   // 体力耗尽，冲刺被强制取消！
+                    }
+                } else {
+                    // ⚡ 速度越快，体力恢复越慢！（狂飙时几乎回不动）
+                    var regenFactor = Math.max(0.1, 1 - (moveSpeed - speed) / MAX_BOOST);
+                    stamina = Math.min(MAX_STAMINA, stamina + STAMINA_REGEN * regenFactor);
+                }
+                staminaFill.style.width = stamina + '%';
+                staminaFill.style.background = stamina < 30 ? '#ff5f57' : '#4cd964';   // 快没体力变红！
+            }
 
             for (var i = obstacles.length - 1; i >= 0; i--) {
                 var o = obstacles[i];
@@ -321,11 +623,28 @@
                     showPlus();
                 }
             }
+
+            // 🪨 石头模式：石头在小人后面追，追上就失败！
+            if (gameMode === 'rock' && rock) {
+                var rLeft = parseFloat(rock.style.left);
+                if (isNaN(rLeft)) rLeft = -100;
+                // 跑得比石头快 → 石头被甩开（往左退）；跑得慢 → 石头追上来（往右进）
+                rLeft += (rockSpeed - moveSpeed);
+                rock.style.left = rLeft + 'px';
+                var rr = rock.getBoundingClientRect();
+                var pp = player.getBoundingClientRect();
+                // 石头追上小人 → 失败！
+                if (rr.right >= pp.left) {
+                    endGame();
+                    return;
+                }
+            }
         }
 
         // 跳跃
         function jump() {
             if (!gameRunning) { startGame(); return; }
+            if (gameMode === 'rock') return;   // 石头模式不用跳！
             if (player.classList.contains('jumping') || player.classList.contains('sliding')) return;
             player.classList.add('jumping');
             setTimeout(function () { player.classList.remove('jumping'); }, 900);
@@ -334,6 +653,7 @@
         // 滑铲 🛹
         function slide() {
             if (!gameRunning) { startGame(); return; }
+            if (gameMode === 'rock') return;   // 石头模式不用滑铲！
             if (player.classList.contains('jumping') || player.classList.contains('sliding')) return;
             player.classList.add('sliding');
             player.textContent = '🛹';
@@ -347,25 +667,57 @@
         function startGame() {
             player.classList.remove('jumping', 'sliding');
             player.textContent = '🏃';
+            // 石头模式：小人站最右边（跑在前面）；障碍模式：小人站左边
+            if (gameMode === 'rock') {
+                player.style.left = 'auto';
+                player.style.right = '40px';
+            } else {
+                player.style.right = 'auto';
+                player.style.left = '60px';
+            }
             obstacles.forEach(function (o) { o.remove(); });
             obstacles = [];
             coins.forEach(function (c) { c.remove(); });
             coins = [];
+            if (rock) rock.style.display = 'none';
             score = 0;
             scoreText.textContent = '得分：0';
             sprinttip.style.display = 'none';
             sprinting = false;
+            tapBoost = 0;
+            speedtip.textContent = '⚡ 速度：' + Math.round(speed);
             gameoverText.style.display = 'none';
+
+            // 按模式显示提示和玩法
+            // 石头模式：跑道更长（900px）；障碍模式：标准（600px）
+            if (gameMode === 'rock') {
+                game.style.maxWidth = '900px';
+                gameoverText.textContent = '🪨 被石头追上啦！点击重玩';
+                tipText.textContent = '🪨 小人跑前面，石头在后面追！⌨️空格点得越快甩得越远，别让它追上！Shift=疾跑💨（消耗体力🫧）';
+                spawnRock();
+            } else {
+                game.style.maxWidth = '600px';
+                gameoverText.textContent = '💥 游戏结束！点击重玩';
+                tipText.textContent = '🖱️点击或空格：跳跃 · ↓/S：滑铲 · Shift：疾跑💨 · 💰金币：+10分';
+            }
+
+            // 速度仪表盘只在石头模式显示
+            speedtip.style.display = (gameMode === 'rock') ? 'block' : 'none';
+            // 体力条只在石头模式显示，开局满体力
+            stamina = MAX_STAMINA;
+            staminaFill.style.width = stamina + '%';
+            staminaBar.style.display = (gameMode === 'rock') ? 'block' : 'none';
+
             gameRunning = true;
             clearInterval(gameLoop);
             clearInterval(spawnTimer);
             clearInterval(coinTimer);
             gameLoop = setInterval(frame, 30);
             spawnTimer = setInterval(function () {
-                if (gameRunning) spawnObstacle();
+                if (gameRunning && gameMode === 'obstacle') spawnObstacle();
             }, 1800);
             coinTimer = setInterval(function () {
-                if (gameRunning) spawnCoin();
+                if (gameRunning && gameMode === 'obstacle') spawnCoin();
             }, 1200);
         }
 
@@ -378,20 +730,305 @@
             gameoverText.style.display = 'block';
         }
 
-        // 监听操作：点击=跳跃，空格=跳跃，↓/S=滑铲，按住Shift/↑=疾跑
-        game.addEventListener('click', jump);
+        // 监听操作：🖱️点击=障碍模式跳跃，空格=石头模式加速/障碍模式跳跃，↓/S=滑铲，Shift=疾跑
+        function gameTap() {
+            if (!gameRunning) { startGame(); return; }
+            if (gameMode === 'rock') {
+                // 🏃 石头模式：点击=加速（手机端没有空格键，就靠点击！）
+                tapBoost = Math.min(MAX_BOOST, tapBoost + TAP_POWER);
+            } else {
+                // 🎮 障碍模式：点击=跳跃
+                jump();
+            }
+        }
+        game.addEventListener('mousedown', gameTap);
+        game.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            gameTap();
+        }, { passive: false });
+
+        // 📱 手机端的滑铲/冲刺按钮
+        document.getElementById('btn-slide').addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            slide();
+        });
+        document.getElementById('btn-slide').addEventListener('click', function () {
+            if (gameMode === 'obstacle') slide();
+        });
+        document.getElementById('btn-sprint').addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            sprinting = true;
+        });
+        document.getElementById('btn-sprint').addEventListener('touchend', function () {
+            sprinting = false;
+        });
+        document.getElementById('btn-sprint').addEventListener('mousedown', function () { sprinting = true; });
+        document.getElementById('btn-sprint').addEventListener('mouseup', function () { sprinting = false; });
         document.addEventListener('keydown', function (e) {
-            if (e.code === 'Space') { e.preventDefault(); jump(); }
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); slide(); }
-            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ArrowUp') {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
                 e.preventDefault();
-                sprinting = true;
+                if (gameMode === 'rock' && e.code === 'Space') {
+                    // 🏃 石头模式：空格点得越快跑得越快！
+                    if (e.repeat) return;      // 长按不算，要一下一下点！
+                    if (!gameRunning) { startGame(); return; }
+                    tapBoost = Math.min(MAX_BOOST, tapBoost + TAP_POWER);
+                } else {
+                    jump();
+                }
+            }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); slide(); }
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+                if (gameMode !== 'rock' || stamina > 0) sprinting = true;   // 没体力就不能冲刺！
             }
         });
         document.addEventListener('keyup', function (e) {
-            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ArrowUp') {
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
                 sprinting = false;
             }
+        });
+
+        // 🫧 爱好模式切换：点一下爱好，页面进入对应模式！
+        var hobbyStatus = document.getElementById('hobby-status');
+        var musicPlayer = document.getElementById('musicplayer');
+        var mpSong = document.getElementById('mp-song');
+        var mpPlay = document.getElementById('mp-play');
+        var mpList = document.getElementById('mp-list');
+        var audioCtx = null;
+        var musicPlaying = false;
+        var musicMode = false;       // 音乐播放器界面是否打开
+        var currentSong = 0;         // 当前歌曲编号
+        var musicLoopTimer = null;
+        var audioSources = [];       // 当前正在发声的音源（切歌时清掉）
+
+        // 🎵 歌曲库：4首用代码生成的小旋律（不需要音乐文件！）
+        var SONGS = [
+            { name: '⭐ 小星星', melody: [
+                [262,1],[262,1],[392,1],[392,1],[440,1],[440,1],[392,2],
+                [349,1],[349,1],[330,1],[330,1],[294,1],[294,1],[262,2]
+            ]},
+            { name: '🐯 两只老虎', melody: [
+                [262,1],[294,1],[330,1],[262,1],[262,1],[294,1],[330,1],[262,1],
+                [330,1],[349,1],[392,2],[330,1],[349,1],[392,2],
+                [392,1],[440,1],[392,1],[349,1],[330,1],[262,1],
+                [392,1],[440,1],[392,1],[349,1],[330,1],[262,1],
+                [262,1],[392,1],[262,2],[262,1],[392,1],[262,2]
+            ]},
+            { name: '🎶 欢乐颂', melody: [
+                [330,1],[330,1],[349,1],[392,1],[392,1],[349,1],[330,1],[294,1],
+                [262,1],[262,1],[294,1],[330,1],[330,1],[294,1],[294,2],
+                [330,1],[330,1],[349,1],[392,1],[392,1],[349,1],[330,1],[294,1],
+                [262,1],[262,1],[294,1],[330,1],[294,1],[262,1],[262,2]
+            ]},
+            { name: '🎂 生日歌', melody: [
+                [392,1],[392,1],[440,1],[392,1],[523,1],[494,2],
+                [392,1],[392,1],[440,1],[392,1],[587,1],[523,2],
+                [392,1],[392,1],[784,1],[659,1],[523,1],[494,1],[440,2],
+                [698,1],[698,1],[659,1],[523,1],[587,1],[523,2]
+            ]}
+        ];
+
+        // 🔊 确保音频引擎就绪（浏览器规则：声音必须在用户点击/按键之后开启！）
+        function ensureAudio() {
+            if (!audioCtx) {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) {
+                    hobbyStatus.textContent = '😢 你的浏览器不支持声音，换 Chrome 或 Edge 试试～';
+                    return null;
+                }
+                audioCtx = new AC();
+            }
+            // 如果被浏览器挂起，就恢复它（重要！）
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            return audioCtx;
+        }
+
+        // 清掉当前正在播放的音源（切歌/停止时用）
+        function clearSources() {
+            audioSources.forEach(function (s) { try { s.stop(); } catch (e) {} });
+            audioSources = [];
+        }
+
+        // 播放当前歌曲（自动循环！同一套引擎，绝不再重建）
+        function playMelody() {
+            var ctx = ensureAudio();
+            if (!ctx) return;
+            clearSources();
+            var melody = SONGS[currentSong].melody;
+            var beat = 0.38;
+            var t = ctx.currentTime + 0.08;
+            melody.forEach(function (note) {
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = note[0];
+                var dur = note[1] * beat;
+                gain.gain.setValueAtTime(0.001, t);
+                gain.gain.exponentialRampToValueAtTime(0.22, t + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.9);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(t);
+                osc.stop(t + dur);
+                audioSources.push(osc);
+            });
+            // 播完自动循环下一遍
+            var durationMs = ((t - ctx.currentTime) + 0.25) * 1000;
+            clearTimeout(musicLoopTimer);
+            musicLoopTimer = setTimeout(function () {
+                if (musicPlaying) playMelody();
+            }, durationMs);
+        }
+
+        // 停止音乐（用暂停，不销毁引擎）
+        function stopMusic() {
+            clearTimeout(musicLoopTimer);
+            clearSources();
+            if (audioCtx) {
+                try { audioCtx.suspend(); } catch (e) {}
+            }
+            musicPlaying = false;
+        }
+
+        // 暂停游戏（音乐模式时用，不让小人偷偷死掉）
+        function pauseGame() {
+            gameRunning = false;
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            clearInterval(coinTimer);
+            obstacles.forEach(function (o) { o.remove(); });
+            obstacles = [];
+            coins.forEach(function (c) { c.remove(); });
+            coins = [];
+        }
+
+        // 刷新音乐播放器界面
+        function updateMusicUI() {
+            mpSong.textContent = SONGS[currentSong].name;
+            mpPlay.textContent = musicPlaying ? '⏸ 暂停' : '▶ 播放';
+            mpList.innerHTML = '';
+            SONGS.forEach(function (s, i) {
+                var b = document.createElement('span');
+                b.className = 'song-item' + (i === currentSong ? ' current' : '');
+                b.textContent = s.name;
+                b.addEventListener('click', function () {
+                    currentSong = i;
+                    playMelody();
+                    musicPlaying = true;
+                    updateMusicUI();
+                });
+                mpList.appendChild(b);
+            });
+        }
+
+        // 进入音乐模式：播放器顶替小游戏！
+        function enterMusicMode() {
+            musicMode = true;
+            pauseGame();
+            game.style.display = 'none';
+            musicPlayer.style.display = 'block';
+            hobbyStatus.textContent = '🎵 音乐模式开启！点歌单或按钮切换歌曲～';
+            if (!musicPlaying) { playMelody(); musicPlaying = true; }
+            updateMusicUI();
+        }
+
+        // 退出音乐模式：小游戏回来！
+        function exitMusicMode() {
+            stopMusic();
+            musicMode = false;
+            musicPlayer.style.display = 'none';
+            game.style.display = 'block';
+            startGame();
+        }
+
+        function setHobbyActive(el) {
+            var items = document.querySelectorAll('#hobbies li');
+            items.forEach(function (it) { it.classList.remove('active'); });
+            el.classList.add('active');
+        }
+
+        // 🎮 玩游戏 → 障碍跑酷！
+        document.getElementById('hobby-game').addEventListener('click', function () {
+            setHobbyActive(this);
+            gameMode = 'obstacle';
+            if (musicMode) {
+                exitMusicMode();          // 先退出音乐模式，小游戏回来！
+            } else {
+                startGame();
+            }
+            hobbyStatus.textContent = '🎮 游戏模式开启！快冲吧！';
+            game.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        // 🏃 跑步 → 石头追你！点得越快跑得越快！
+        document.getElementById('hobby-run').addEventListener('click', function () {
+            setHobbyActive(this);
+            gameMode = 'rock';
+            if (musicMode) {
+                exitMusicMode();
+            } else {
+                startGame();
+            }
+            hobbyStatus.textContent = '🏃 跑步模式开启！🪨 石头在后面追，狂点空格！';
+            game.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        // 🎵 听音乐 → 打开音乐播放器（顶替小游戏！）
+        document.getElementById('hobby-music').addEventListener('click', function () {
+            setHobbyActive(this);
+            if (musicMode) {
+                // 已经在音乐模式：点一下暂停/继续
+                if (musicPlaying) {
+                    stopMusic();
+                } else {
+                    playMelody();
+                    musicPlaying = true;
+                }
+                updateMusicUI();
+            } else {
+                enterMusicMode();
+            }
+        });
+
+        // 音乐播放器按钮
+        document.getElementById('mp-prev').addEventListener('click', function () {
+            currentSong = (currentSong - 1 + SONGS.length) % SONGS.length;
+            playMelody();
+            musicPlaying = true;
+            updateMusicUI();
+        });
+        document.getElementById('mp-next').addEventListener('click', function () {
+            currentSong = (currentSong + 1) % SONGS.length;
+            playMelody();
+            musicPlaying = true;
+            updateMusicUI();
+        });
+        document.getElementById('mp-play').addEventListener('click', function () {
+            if (musicPlaying) {
+                stopMusic();
+            } else {
+                playMelody();
+                musicPlaying = true;
+            }
+            updateMusicUI();
+        });
+        document.getElementById('mp-exit').addEventListener('click', function () {
+            var items = document.querySelectorAll('#hobbies li');
+            items.forEach(function (it) { it.classList.remove('active'); });
+            exitMusicMode();
+        });
+
+        // 🖱️ 页面第一次点击/按键时，就提前准备好音频引擎（浏览器规定声音必须这样开启）
+        document.addEventListener('click', function () { ensureAudio(); }, { once: true });
+        document.addEventListener('keydown', function () { ensureAudio(); }, { once: true });
+
+        // 🌍 其他主题卡片：点击看提示！
+        var themeStatus = document.getElementById('theme-status');
+        document.getElementById('theme-football').addEventListener('click', function () {
+            themeStatus.textContent = '⚽ 足球主题正在制作中！敬请期待～';
+        });
+        document.getElementById('theme-moto').addEventListener('click', function () {
+            themeStatus.textContent = '🏍️ 摩托车主题正在制作中！敬请期待～';
         });
     </script>
 
