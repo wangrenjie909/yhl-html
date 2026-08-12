@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏍️ 摩托飞驰</title>
+    <style>
+        /* 🛣️ 深夜公路风：沥青路面 + 流动的黄色虚线 */
+        body {
+            background: linear-gradient(180deg, #0b0b12 0%, #1c1c26 55%, #101018 100%);
+            color: #fff;
+            font-family: "Microsoft YaHei", sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 40px 20px;
+            overflow-x: hidden;
+        }
+        /* 公路中间的黄色虚线（一直往你脚下流 = 在飙车！） */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 6px;
+            transform: translateX(-50%);
+            background: repeating-linear-gradient(180deg, #ffd966 0 30px, transparent 30px 62px);
+            animation: roadmove 1.2s linear infinite;
+            z-index: -1;
+            opacity: 0.9;
+        }
+        @keyframes roadmove {
+            from { background-position: 0 0; }
+            to   { background-position: 0 62px; }
+        }
+        /* 公路两边的白色边线 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 86vw;
+            max-width: 700px;
+            transform: translateX(-50%);
+            background:
+                linear-gradient(90deg, transparent 0 4%, rgba(255,255,255,0.25) 4% 4.4%, transparent 4.4% 95.6%, rgba(255,255,255,0.25) 95.6% 96%, transparent 96% 100%);
+            z-index: -1;
+        }
+        h1 {
+            font-size: 44px;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.4);
+        }
+        h2 {
+            font-size: 26px;
+            margin-top: 36px;
+        }
+        .intro {
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        ul, ol {
+            list-style: none;
+            padding: 0;
+        }
+        ul li {
+            display: inline-block;
+            background: rgba(0, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 10px 20px;
+            margin: 8px;
+            font-size: 18px;
+        }
+        ol li {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 10px 20px;
+            margin: 8px;
+            font-size: 18px;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 14px 34px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .back-btn:hover {
+            transform: scale(1.08);
+            background: rgba(0, 255, 255, 0.3);
+        }
+
+        /* 🎮 公路躲避小游戏 */
+        /* 页面内容：开始游戏后向上飞走，失败后飞回来 */
+        #page-content {
+            position: relative;
+            z-index: 20;
+            transition: transform 0.6s ease, opacity 0.6s ease;
+        }
+        #page-content.fly-up {
+            transform: translateY(-110vh);   /* ✈️ 向上飞出去！ */
+            opacity: 0;
+        }
+        #page-content.fly-down {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .start-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 16px 38px;
+            font-size: 22px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s;
+        }
+        .start-btn:hover {
+            transform: scale(1.06);
+        }
+        /* 游戏：普通时是小盒子，开始后变成全屏背景！ */
+        #game {
+            position: relative;
+            width: 320px;
+            height: 420px;
+            margin: 20px auto;
+            background: #1c1c26;
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            touch-action: none;
+            user-select: none;
+        }
+        #game.full {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            border: none;
+            border-radius: 0;
+            z-index: 10;   /* 游戏的公路背景 */
+        }
+        /* 游戏里的公路中线 */
+        #game::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 5px;
+            transform: translateX(-50%);
+            background: repeating-linear-gradient(180deg, #ffd966 0 24px, transparent 24px 50px);
+            animation: gmroad 0.8s linear infinite;
+            z-index: 0;
+        }
+        @keyframes gmroad {
+            from { background-position: 0 0; }
+            to   { background-position: 0 50px; }
+        }
+        /* 游戏里的车道边线 */
+        #game::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 8%;
+            right: 8%;
+            border-left: 2px dashed rgba(255, 255, 255, 0.3);
+            border-right: 2px dashed rgba(255, 255, 255, 0.3);
+            z-index: 0;
+        }
+        /* 🏍️ 真实的摩托车照片（车头朝上！） */
+        #moto {
+            position: absolute;
+            bottom: 60px;
+            width: 64px;
+            height: 104px;
+            object-fit: contain;
+            z-index: 3;
+            transition: left 0.05s;
+        }
+        /* 🚗 真实俯视汽车照片（车头朝下！） */
+        .car {
+            position: absolute;
+            top: -100px;
+            width: 70px;
+            height: 150px;
+            z-index: 2;
+        }
+        .car img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #g-score {
+            position: absolute;
+            top: 12px;
+            left: 15px;
+            font-size: 18px;
+            margin: 0;
+            z-index: 4;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+        .g-tip {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            opacity: 0.9;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 14px;
+            border-radius: 12px;
+            z-index: 4;
+            display: none;
+            white-space: nowrap;
+        }
+        @media (max-width: 400px) {
+            #game { width: 92vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 页面内容：开始游戏后会向上飞走，失败后飞回来！ -->
+    <div id="page-content">
+        <h1>🏍️ 摩托飞驰</h1>
+        <p class="intro">夜色降临，引擎轰鸣！我是一名摩托车爱好者，喜欢在深夜的公路上飞驰，看着黄色的车道线从脚下流过，感受风从耳边呼啸而过的快感！🌃</p>
+
+        <h2>🏁 我的摩托技能</h2>
+        <ul>
+            <li>🔧 压弯</li>
+            <li>💨 极速</li>
+            <li>🛞 漂移</li>
+            <li>🏍️ 翘头</li>
+        </ul>
+
+        <h2>🚦 我的梦想</h2>
+        <ol>
+            <li>拥有一辆酷炫的重机车</li>
+            <li>来一次说走就走的摩旅</li>
+            <li>成为最帅的骑士！</li>
+        </ol>
+
+        <h2>🎮 公路躲避小游戏</h2>
+        <button id="start-game" class="start-btn">🏁 开始游戏</button>
+
+        <a class="back-btn" id="back-home" href="index.html">⬅ 回到跑酷者的天台</a>
+    </div>
+
+    <!-- 游戏：开始后变成全屏公路背景！ -->
+    <div id="game">
+        <p id="g-score">得分：0</p>
+        <p class="g-tip" id="g-tip">👉 ← → 键躲避车辆（手机：左右滑动）</p>
+        <img id="moto" src="moto_up.png" alt="🏍️">
+    </div>
+
+    <script>
+        // ⚡ 电器区：公路躲避小游戏！
+        var game = document.getElementById('game');
+        var moto = document.getElementById('moto');
+        var gScore = document.getElementById('g-score');
+        var gTip = document.getElementById('g-tip');
+        var content = document.getElementById('page-content');
+        var startBtn = document.getElementById('start-game');
+        var score = 0;
+        var running = false;
+        var cars = [];
+        var motoX = 0;          // 摩托车的左边位置
+        var roadWidth = 320;    // 路面宽度（启动时重新读）
+        var MOTO_W = 70;        // 摩托车大致宽度（俯视）
+        var gameLoop = null;
+        var spawnTimer = null;
+
+        // 🏁 开始游戏：内容飞走，游戏全屏！
+        function startMotoGame() {
+            // 页面内容向上飞走
+            content.classList.remove('fly-down');
+            content.classList.add('fly-up');
+            // 游戏变成全屏公路背景
+            game.classList.add('full');
+            game.style.display = 'block';
+            gTip.style.display = 'block';
+            startBtn.textContent = '🏁 开始游戏';
+
+            cars.forEach(function (c) { c.remove(); });
+            cars = [];
+            score = 0;
+            gScore.textContent = '得分：0';
+            roadWidth = game.clientWidth;
+            motoX = (roadWidth - MOTO_W) / 2;
+            moto.style.left = motoX + 'px';
+            running = true;
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            gameLoop = setInterval(frame, 30);
+            spawnTimer = setInterval(spawnCar, 900);   // 🚦 车来得更密！
+        }
+
+        // 🚗 生成一辆车（真实俯视照片，随机颜色！）
+        function spawnCar() {
+            var c = document.createElement('div');
+            c.className = 'car';
+            var carImgs = ['car_silver_dn.png', 'car_red_dn.png', 'car_blue_dn.png', 'car_green_dn.png',
+                           'car_yellow_dn.png', 'car_orange_dn.png', 'car_purple_dn.png'];
+            var img = document.createElement('img');
+            img.src = carImgs[Math.floor(Math.random() * carImgs.length)];
+            img.alt = 'car';
+            c.appendChild(img);
+            var maxLeft = roadWidth - 82;
+            c.style.left = (8 + Math.random() * (maxLeft - 8)) + 'px';
+            c.style.top = '-100px';
+            game.appendChild(c);
+            cars.push(c);
+        }
+
+        // 每一帧：车往下开 + 加分 + 碰撞检测
+        function frame() {
+            if (!running) return;
+            score++;
+            gScore.textContent = '得分：' + Math.floor(score / 10);
+
+            for (var i = cars.length - 1; i >= 0; i--) {
+                var c = cars[i];
+                var top = parseFloat(c.style.top);
+                c.style.top = (top + 11) + 'px';   // ⚡ 车速更快！
+
+                // 开出屏幕就删除
+                if (top > game.clientHeight) {
+                    c.remove();
+                    cars.splice(i, 1);
+                    continue;
+                }
+
+                // 撞到摩托车 → 游戏结束！
+                var m = moto.getBoundingClientRect();
+                var cc = c.getBoundingClientRect();
+                if (m.left < cc.right && m.right > cc.left && m.top < cc.bottom && m.bottom > cc.top) {
+                    endMotoGame();
+                    return;
+                }
+            }
+        }
+
+        // 💥 游戏结束：回到干净页面，按钮上显示得分！
+        function endMotoGame() {
+            running = false;
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            // 内容飞回来，按钮归位
+            content.classList.remove('fly-up');
+            content.classList.add('fly-down');
+            // 全屏游戏缩回去隐藏，回到最初状态
+            game.classList.remove('full');
+            game.style.display = 'none';
+            gTip.style.display = 'none';
+            // 开始按钮变成"重玩"，显示得分（不弹重叠的框！）
+            startBtn.textContent = '💥 撞车啦！得分：' + Math.floor(score / 10) + '（点击重玩）';
+        }
+
+        // 移动摩托车
+        function moveMoto(dx) {
+            motoX = Math.max(4, Math.min(roadWidth - MOTO_W - 4, motoX + dx));
+            moto.style.left = motoX + 'px';
+        }
+
+        // 手机：手指滑到哪里，摩托车就跟到哪里
+        function handleTouch(e) {
+            var rect = game.getBoundingClientRect();
+            var touchX = e.touches[0].clientX - rect.left;
+            motoX = Math.max(4, Math.min(roadWidth - MOTO_W - 4, touchX - MOTO_W / 2));
+            moto.style.left = motoX + 'px';
+        }
+
+        // 监听操作
+        document.getElementById('start-game').addEventListener('click', startMotoGame);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); if (running) moveMoto(-18); }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); if (running) moveMoto(18); }
+        });
+        game.addEventListener('touchstart', function (e) { if (!running) return; e.preventDefault(); handleTouch(e); }, { passive: false });
+        game.addEventListener('touchmove', function (e) { if (!running) return; e.preventDefault(); handleTouch(e); }, { passive: false });
+    </script>
+
+</body>
+</html>

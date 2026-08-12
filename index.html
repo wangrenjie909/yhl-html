@@ -5,18 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>跑酷者的天台</title>
     <style>
-        /* 🎨 装修区：背景渐变 + 文字样式 */
+        /* 🎨 装修区：跑酷人物背景图（无遮罩，更清晰！） */
         body {
-            background: linear-gradient(180deg, #ff7e5f, #feb47b);
+            background: #1a0d08;   /* 兜底色：图片没加载出来时才显示 */
             font-family: "Microsoft YaHei", sans-serif;
             text-align: center;
             color: #fff;
             margin: 0;
             padding: 40px 20px;
         }
+        /* 背景图单独放一层：去掉遮罩 + 加一点对比度让画面更清晰 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://i1.hdslb.com/bfs/archive/1d03e3a8ac01c6485b72602adbcdc58db52d4e06.jpg') center / cover no-repeat;
+            filter: contrast(1.1) saturate(1.08);
+            z-index: -1;
+        }
         h1 {
             font-size: 48px;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+        /* 🏙️ 主视觉：一开始就展示整个天台！ */
+        .hero {
+            padding: 30px 20px;
+        }
+        .hero h1 {
+            font-size: 58px;
+            text-shadow: 0 0 20px rgba(255,150,80,0.9), 0 0 40px rgba(255,150,80,0.5);
         }
         h2 {
             font-size: 30px;
@@ -43,16 +63,47 @@
             margin: 8px;
             font-size: 18px;
         }
-        /* 🫧 爱好可以点击切换模式！ */
+        /* 🫧 爱好可以点击切换模式 + 翻转！ */
         #hobbies li {
             cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
+            background: transparent;
+            padding: 0;
+            margin: 8px;
+            perspective: 600px;   /* 🪄 3D舞台 */
         }
-        #hobbies li:hover {
-            background: rgba(255,255,255,0.45);
-            transform: scale(1.05);
+        .hobby-inner {
+            position: relative;
+            width: 130px;
+            height: 46px;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
         }
-        #hobbies li.active {
+        #hobbies li:hover .hobby-inner {
+            transform: rotateY(180deg);   /* 🪄 爱好也翻面！ */
+        }
+        .hobby-front,
+        .hobby-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.25);
+            font-size: 18px;
+        }
+        .hobby-back {
+            transform: rotateY(180deg);
+            background: rgba(255,255,255,0.4);
+            font-size: 13px;
+            flex-direction: column;
+            gap: 2px;
+        }
+        #hobbies li.active .hobby-front {
             background: #f5b301;
             color: #3a2a00;
             box-shadow: 0 0 12px rgba(255,200,0,0.8);
@@ -264,17 +315,44 @@
             flex-wrap: wrap;
         }
         .theme-card {
-            background: rgba(255,255,255,0.25);
+            background: transparent;
             border-radius: 20px;
-            padding: 20px 34px;
-            font-size: 22px;
+            padding: 0;
             cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
             user-select: none;
+            perspective: 600px;   /* 🪄 3D透视：翻转的舞台！ */
         }
-        .theme-card:hover {
-            background: rgba(255,255,255,0.45);
-            transform: scale(1.06);
+        .card-inner {
+            position: relative;
+            width: 170px;
+            height: 95px;
+            transform-style: preserve-3d;   /* 保留3D立体感 */
+            transition: transform 0.6s;
+        }
+        .theme-card:hover .card-inner {
+            transform: rotateY(180deg);   /* 🪄 鼠标移上去，翻个面！ */
+        }
+        .card-front,
+        .card-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;   /* 背面藏起来，翻转时才出现 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.25);
+            font-size: 22px;
+        }
+        .card-back {
+            transform: rotateY(180deg);   /* 背面先转过去待命 */
+            background: rgba(255,255,255,0.4);
+            font-size: 15px;
+            flex-direction: column;
+            gap: 4px;
         }
         #theme-status {
             font-size: 16px;
@@ -308,6 +386,7 @@
         @media (max-width: 640px) {
             body { padding: 20px 10px; }
             h1 { font-size: 30px; }
+            .hero h1 { font-size: 34px; }
             h2 { font-size: 22px; }
             .intro { font-size: 16px; }
             ul li { font-size: 15px; padding: 8px 14px; }
@@ -375,6 +454,24 @@
             display: none;
             z-index: 4;
         }
+        /* 🎮 点击才显示：揭晓按钮！ */
+        .reveal-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 18px 40px;
+            font-size: 22px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .reveal-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+        }
         /* 🪨 石头（跑步模式追你的大石头！） */
         .rock {
             position: absolute;
@@ -395,8 +492,10 @@
 </head>
 <body>
 
-    <h1>🏙️ 欢迎来到我的天台</h1>
-    <p class="author">作者：跑酷者的天台</p>
+    <div class="hero">
+        <h1>🏙️ 跑酷者的天台</h1>
+        <p class="author">欢迎来到我的天台 · 让风带你飞！🌇</p>
+    </div>
 
     <h2>📖 关于我</h2>
     <p class="intro">我是一名城市跑酷爱好者！喜欢在高楼之间穿梭，翻越每一道障碍，在橙红色的夕阳下奔跑。欢迎常来我的天台坐坐！😄</p>
@@ -411,14 +510,29 @@
 
     <h2>🎮 我的爱好</h2>
     <ul id="hobbies">
-        <li id="hobby-game">🎮 玩游戏</li>
-        <li id="hobby-run">🏃 跑步</li>
-        <li id="hobby-music">🎵 听音乐</li>
+        <li id="hobby-game">
+            <div class="hobby-inner">
+                <div class="hobby-front">🎮 玩游戏</div>
+                <div class="hobby-back">🎮 游戏模式<br>障碍跑酷！</div>
+            </div>
+        </li>
+        <li id="hobby-run">
+            <div class="hobby-inner">
+                <div class="hobby-front">🏃 跑步</div>
+                <div class="hobby-back">🏃 石头追逐<br>狂点空格！</div>
+            </div>
+        </li>
+        <li id="hobby-music">
+            <div class="hobby-inner">
+                <div class="hobby-front">🎵 听音乐</div>
+                <div class="hobby-back">🎵 音乐模式<br>4首歌！</div>
+            </div>
+        </li>
     </ul>
     <p id="hobby-status">👉 点一下上面的爱好，试试切换模式！</p>
 
-    <h2>🎮 天台跑酷小游戏</h2>
-    <div id="game">
+    <h2 id="game-heading" style="display:none;">🎮 天台跑酷小游戏</h2>
+    <div id="game" style="display:none;">
         <p id="score">得分：0</p>
         <p id="sprinttip" style="display:none;">💨 疾跑冲刺中！</p>
         <p id="speedtip">⚡ 速度：0</p>
@@ -428,7 +542,7 @@
         <p id="gameover">💥 游戏结束！点击重玩</p>
     </div>
 
-    <div id="touch-controls">
+    <div id="touch-controls" style="display:none;">
         <button id="btn-slide">🛹 滑铲</button>
         <button id="btn-sprint">💨 冲刺</button>
     </div>
@@ -443,20 +557,29 @@
         <div id="mp-list"></div>
         <button id="mp-exit">✖ 退出音乐模式，回到游戏</button>
     </div>
-    <p class="tip" id="tipText">👉 🖱️ 鼠标点得越快，小人跑得越快！ · 空格/↑：跳跃 · ↓/S：滑铲 · Shift：疾跑💨 · 💰金币：+10分，跑过去就能捡！</p>
+    <p class="tip" id="tipText" style="display:none;">👉 🖱️ 鼠标点得越快，小人跑得越快！ · 空格/↑：跳跃 · ↓/S：滑铲 · Shift：疾跑💨 · 💰金币：+10分，跑过去就能捡！</p>
 
-    <div id="video-section">
-        <h2>🎥 酷炫跑酷视频</h2>
-        <div class="video-box">
-            <iframe src="https://player.bilibili.com/player.html?bvid=BV1Uz411v7QT&page=1&high_quality=1&danmaku=0" allowfullscreen="true" scrolling="no"></iframe>
-        </div>
+    <h2>🎥 酷炫跑酷视频</h2>
+    <button id="open-video" class="reveal-btn">🎥 点击打开跑酷视频</button>
+    <div id="video-section" style="display:none;">
+        <div class="video-box" id="video-box"></div>
     </div>
 
     <div id="theme-section">
         <h2>🌍 其他主题</h2>
         <div class="theme-box">
-            <div class="theme-card" id="theme-football">⚽ 足球</div>
-            <div class="theme-card" id="theme-moto">🏍️ 摩托车</div>
+            <div class="theme-card" id="theme-football">
+                <div class="card-inner">
+                    <div class="card-front">⚽ 足球</div>
+                    <div class="card-back">⚽ 足球主题<br>制作中～</div>
+                </div>
+            </div>
+            <div class="theme-card" id="theme-moto">
+                <div class="card-inner">
+                    <div class="card-front">🏍️ 摩托车</div>
+                    <div class="card-back">🏍️ 摩托车网页<br>点我进入！</div>
+                </div>
+            </div>
         </div>
         <p id="theme-status">👉 点一下主题卡片，看看会发生什么！</p>
     </div>
@@ -730,6 +853,72 @@
             gameoverText.style.display = 'block';
         }
 
+        // 🎮 点击上面的爱好按钮，才显示小游戏！
+        function openGame() {
+            var hd = document.getElementById('game-heading');
+            if (hd) hd.style.display = 'block';
+            game.style.display = 'block';
+            var tc = document.getElementById('touch-controls');
+            if (tc) tc.style.display = '';   // 清掉内联隐藏，让手机端样式重新生效
+            var tp = document.getElementById('tipText');
+            if (tp) tp.style.display = '';
+        }
+
+        // 游戏现在显示出来了吗？
+        function isGameVisible() {
+            return game.style.display === 'block';
+        }
+
+        // 🎮 隐藏游戏（再点一次同一按钮时用）
+        function closeGame() {
+            game.style.display = 'none';
+            var hd = document.getElementById('game-heading');
+            if (hd) hd.style.display = 'none';
+            var tc = document.getElementById('touch-controls');
+            if (tc) tc.style.display = 'none';
+            var tp = document.getElementById('tipText');
+            if (tp) tp.style.display = 'none';
+            // 停止游戏，清空场上元素
+            if (gameRunning) {
+                gameRunning = false;
+                clearInterval(gameLoop);
+                clearInterval(spawnTimer);
+                clearInterval(coinTimer);
+            }
+            obstacles.forEach(function (o) { o.remove(); });
+            obstacles = [];
+            coins.forEach(function (c) { c.remove(); });
+            coins = [];
+            if (rock) rock.style.display = 'none';
+            // 取消所有爱好高亮
+            var items = document.querySelectorAll('#hobbies li');
+            items.forEach(function (it) { it.classList.remove('active'); });
+        }
+
+        // 🎥 视频开关：点一下打开，再点一下关闭！
+        var videoOpen = false;
+        document.getElementById('open-video').addEventListener('click', function () {
+            var section = document.getElementById('video-section');
+            var box = document.getElementById('video-box');
+            if (videoOpen) {
+                // 关闭：移除视频，藏起来
+                box.innerHTML = '';
+                section.style.display = 'none';
+                this.textContent = '🎥 点击打开跑酷视频';
+                videoOpen = false;
+            } else {
+                // 打开：显示并加载视频
+                this.textContent = '✖ 关闭跑酷视频';
+                section.style.display = 'block';
+                var iframe = document.createElement('iframe');
+                iframe.src = 'https://player.bilibili.com/player.html?bvid=BV1Uz411v7QT&page=1&high_quality=1&danmaku=0';
+                iframe.setAttribute('allowfullscreen', 'true');
+                iframe.setAttribute('scrolling', 'no');
+                box.appendChild(iframe);
+                videoOpen = true;
+            }
+        });
+
         // 监听操作：🖱️点击=障碍模式跳跃，空格=石头模式加速/障碍模式跳跃，↓/S=滑铲，Shift=疾跑
         function gameTap() {
             if (!gameRunning) { startGame(); return; }
@@ -926,6 +1115,8 @@
             musicMode = true;
             pauseGame();
             game.style.display = 'none';
+            var gh = document.getElementById('game-heading');
+            if (gh) gh.style.display = 'none';
             musicPlayer.style.display = 'block';
             hobbyStatus.textContent = '🎵 音乐模式开启！点歌单或按钮切换歌曲～';
             if (!musicPlaying) { playMelody(); musicPlaying = true; }
@@ -937,7 +1128,7 @@
             stopMusic();
             musicMode = false;
             musicPlayer.style.display = 'none';
-            game.style.display = 'block';
+            openGame();
             startGame();
         }
 
@@ -947,47 +1138,57 @@
             el.classList.add('active');
         }
 
-        // 🎮 玩游戏 → 障碍跑酷！
+        // 🎮 玩游戏 → 障碍跑酷！（再点一次就隐藏）
         document.getElementById('hobby-game').addEventListener('click', function () {
+            if (this.classList.contains('active') && isGameVisible()) {
+                closeGame();
+                hobbyStatus.textContent = '🎮 游戏藏起来啦～ 再点一次可以打开！';
+                return;
+            }
             setHobbyActive(this);
             gameMode = 'obstacle';
             if (musicMode) {
                 exitMusicMode();          // 先退出音乐模式，小游戏回来！
             } else {
+                openGame();
                 startGame();
             }
             hobbyStatus.textContent = '🎮 游戏模式开启！快冲吧！';
             game.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
 
-        // 🏃 跑步 → 石头追你！点得越快跑得越快！
+        // 🏃 跑步 → 石头追你！（再点一次就隐藏）
         document.getElementById('hobby-run').addEventListener('click', function () {
+            if (this.classList.contains('active') && isGameVisible()) {
+                closeGame();
+                hobbyStatus.textContent = '🏃 游戏藏起来啦～ 再点一次可以打开！';
+                return;
+            }
             setHobbyActive(this);
             gameMode = 'rock';
             if (musicMode) {
                 exitMusicMode();
             } else {
+                openGame();
                 startGame();
             }
             hobbyStatus.textContent = '🏃 跑步模式开启！🪨 石头在后面追，狂点空格！';
             game.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
 
-        // 🎵 听音乐 → 打开音乐播放器（顶替小游戏！）
+        // 🎵 听音乐 → 打开音乐播放器（再点一次就关闭并隐藏！）
         document.getElementById('hobby-music').addEventListener('click', function () {
-            setHobbyActive(this);
             if (musicMode) {
-                // 已经在音乐模式：点一下暂停/继续
-                if (musicPlaying) {
-                    stopMusic();
-                } else {
-                    playMelody();
-                    musicPlaying = true;
-                }
-                updateMusicUI();
-            } else {
-                enterMusicMode();
+                stopMusic();
+                musicMode = false;
+                musicPlayer.style.display = 'none';
+                closeGame();
+                hobbyStatus.textContent = '🎵 音乐关了，游戏也藏起来啦～';
+                return;
             }
+            setHobbyActive(this);
+            openGame();
+            enterMusicMode();
         });
 
         // 音乐播放器按钮
@@ -1028,7 +1229,7 @@
             themeStatus.textContent = '⚽ 足球主题正在制作中！敬请期待～';
         });
         document.getElementById('theme-moto').addEventListener('click', function () {
-            themeStatus.textContent = '🏍️ 摩托车主题正在制作中！敬请期待～';
+            window.location.href = 'moto.html';   // 🏍️ 跳转到摩托车网页！
         });
     </script>
 
