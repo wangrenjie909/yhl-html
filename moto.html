@@ -153,44 +153,23 @@
             border-radius: 0;
             z-index: 10;   /* 游戏的公路背景 */
         }
-        /* 游戏里的公路中线 */
-        #game::before {
-            content: "";
+        /* 真正的弯道路面（Canvas绘制，会弯曲蜿蜒！） */
+        #road-canvas {
             position: absolute;
             top: 0;
-            bottom: 0;
-            left: 50%;
-            width: 5px;
-            transform: translateX(-50%);
-            background: repeating-linear-gradient(180deg, #ffd966 0 24px, transparent 24px 50px);
-            animation: gmroad 0.8s linear infinite;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 0;
         }
-        @keyframes gmroad {
-            from { background-position: 0 0; }
-            to   { background-position: 0 50px; }
-        }
-        /* 游戏里的车道边线 */
-        #game::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 8%;
-            right: 8%;
-            border-left: 2px dashed rgba(255, 255, 255, 0.3);
-            border-right: 2px dashed rgba(255, 255, 255, 0.3);
-            z-index: 0;
-        }
-        /* 🏍️ 真实的摩托车照片（车头朝上！） */
+        /* 🏍️ 俯视摩托车（精细渲染：红色油箱+头盔+轮毂+投影，车头朝上！） */
         #moto {
             position: absolute;
-            bottom: 60px;
-            width: 64px;
-            height: 104px;
+            top: 0;
+            width: 58px;
+            height: 126px;
             object-fit: contain;
             z-index: 3;
-            transition: left 0.05s;
         }
         /* 🚗 真实俯视汽车照片（车头朝下！） */
         .car {
@@ -216,6 +195,18 @@
             padding: 4px 12px;
             border-radius: 12px;
         }
+        /* ⚡ 速度表 */
+        #g-speed {
+            position: absolute;
+            top: 12px;
+            right: 15px;
+            font-size: 18px;
+            margin: 0;
+            z-index: 4;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
         .g-tip {
             position: absolute;
             top: 14px;
@@ -230,8 +221,405 @@
             display: none;
             white-space: nowrap;
         }
+        /* 💥 翘头提示 */
+        #wheelie-tip {
+            position: absolute;
+            top: 14px;
+            right: 15px;
+            font-size: 14px;
+            background: rgba(255, 90, 40, 0.8);
+            padding: 5px 12px;
+            border-radius: 12px;
+            z-index: 4;
+            display: none;
+            white-space: nowrap;
+        }
+        /* 💥 翘头按钮（手机用） */
+        #btn-wheelie {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 18px;
+            background: rgba(255, 90, 40, 0.75);
+            color: #fff;
+            font-size: 15px;
+            z-index: 5;
+            touch-action: none;
+            user-select: none;
+        }
+        #btn-wheelie:active {
+            background: rgba(255, 120, 70, 0.95);
+        }
+        /* 💨 漂移提示 */
+        #drift-tip {
+            position: absolute;
+            bottom: 55px;
+            right: 15px;
+            font-size: 14px;
+            background: rgba(80, 160, 255, 0.85);
+            padding: 5px 12px;
+            border-radius: 12px;
+            z-index: 4;
+            display: none;
+            white-space: nowrap;
+        }
+        /* 💨 漂移按钮（手机用） */
+        #btn-drift {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 18px;
+            background: rgba(80, 160, 255, 0.75);
+            color: #fff;
+            font-size: 15px;
+            z-index: 5;
+            touch-action: none;
+            user-select: none;
+        }
+        #btn-drift:active {
+            background: rgba(110, 190, 255, 0.95);
+        }
+        /* 🔥 极速提示 */
+        #boost-tip {
+            position: absolute;
+            top: 14px;
+            left: 15px;
+            font-size: 14px;
+            background: rgba(255, 120, 30, 0.9);
+            padding: 5px 12px;
+            border-radius: 12px;
+            z-index: 4;
+            display: none;
+            white-space: nowrap;
+        }
+        /* 🔥 极速按钮（手机用） */
+        #btn-boost {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 18px;
+            border: none;
+            border-radius: 18px;
+            background: rgba(255, 120, 30, 0.85);
+            color: #fff;
+            font-size: 15px;
+            z-index: 5;
+            touch-action: none;
+            user-select: none;
+        }
+        #btn-boost:active {
+            background: rgba(255, 150, 60, 0.95);
+        }
+        /* 🌪️ 过弯提示 */
+        #curve-msg {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            background: rgba(0, 0, 0, 0.65);
+            padding: 8px 20px;
+            border-radius: 14px;
+            z-index: 6;
+            display: none;
+            white-space: nowrap;
+        }
         @media (max-width: 400px) {
             #game { width: 92vw; }
+        }
+        /* ⚡ 魔法实验区（表情雨 + 时钟） */
+        .magic-btn {
+            display: inline-block;
+            margin: 10px;
+            padding: 14px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #a855f7, #6366f1);
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+        .magic-btn:hover {
+            transform: scale(1.06);
+        }
+        #magic-zone {
+            margin: 40px auto 20px;
+        }
+        #clock {
+            display: inline-block;
+            margin: 18px auto;
+            padding: 10px 24px;
+            font-size: 28px;
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 14px;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+        /* 🙈 秘密彩蛋（左上角弹出！） */
+        #secret {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            max-width: 260px;
+            padding: 14px 18px;
+            background: rgba(20, 15, 40, 0.92);
+            border: 2px solid rgba(255, 215, 100, 0.7);
+            border-radius: 16px;
+            font-size: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            animation: secretpop 0.4s ease;
+        }
+        @keyframes secretpop {
+            from { transform: scale(0.6); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+        /* 🥚 隐藏的彩蛋按钮（左上角，低调但看得见！） */
+        .egg-btn {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(0, 0, 0, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 0;
+            opacity: 0.85;
+            filter: brightness(0);   /* 🖤 黑蛋！浅色圆底上看得见 */
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .egg-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        /* 🌧️ 表情雨 */
+        #rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 999;
+        }
+        .raindrop {
+            position: absolute;
+            top: -60px;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            to { transform: translateY(115vh) rotate(360deg); }
+        }
+        /* 🎥 宣传视频 */
+        #moto-video {
+            margin: 40px auto 20px;
+        }
+        .video-box {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            padding-top: 56.25%;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .video-box iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .video-box .magic-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0;
+        }
+        /* 🎥 点击才显示：揭晓按钮！ */
+        .reveal-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 18px 40px;
+            font-size: 22px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);   /* 🔵 蓝色按钮！ */
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .reveal-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+        }
+        /* 🏍️ 摩托车品种 */
+        #moto-models {
+            margin: 40px auto 20px;
+        }
+        /* 💰 积分/最高分状态栏 */
+        #shop-stats {
+            font-size: 15px;
+            margin: 10px auto;
+            background: rgba(255, 255, 255, 0.12);
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 14px;
+        }
+        /* 🏅 成就区 */
+        #achieve-zone {
+            margin: 40px auto 20px;
+        }
+        .achieve {
+            display: inline-block;
+            margin: 6px;
+            padding: 8px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.12);
+            font-size: 14px;
+            opacity: 0.6;
+        }
+        .achieve.done {
+            background: rgba(255, 215, 100, 0.25);
+            opacity: 1;
+            border: 1px solid rgba(255, 215, 100, 0.6);
+        }
+        .model-box {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+        }
+        .model-card {
+            width: 230px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 14px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .model-card:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        .model-card img {
+            width: 100%;
+            height: 130px;
+            object-fit: contain;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 10px;
+        }
+        .model-card h3 {
+            margin: 10px 0 6px;
+            font-size: 18px;
+        }
+        .model-card p {
+            margin: 0;
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        /* 🔍 车型大图查看（点卡片弹出！） */
+        #model-lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        #model-lightbox img {
+            max-width: 70vw;
+            max-height: 50vh;
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+        }
+        #model-lightbox h3 {
+            font-size: 24px;
+            margin: 6px 0 0;
+        }
+        #model-lightbox p {
+            font-size: 15px;
+            max-width: 500px;
+            opacity: 0.9;
+            margin: 0 20px;
+        }
+        .lb-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .lb-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        #lb-prev { left: 15px; }
+        #lb-next { right: 15px; }
+        #lb-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            transform: none;
+            border-radius: 10px;
+            width: auto;
+            padding: 6px 16px;
+        }
+        #lb-use {
+            margin-top: 14px;
+        }
+        #lb-stats {
+            font-size: 16px;
+            color: #ffd966;
+            margin: 4px 20px;
+        }
+        /* ✅ 使用成功提示 */
+        #use-toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid rgba(80, 200, 120, 0.8);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 14px;
+            z-index: 2001;
+            display: none;
+            font-size: 16px;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -259,143 +647,835 @@
 
         <h2>🎮 公路躲避小游戏</h2>
         <button id="start-game" class="start-btn">🏁 开始游戏</button>
+        <p class="intro" id="shop-stats">💰 积分：0 · 🏆 最高得分：0 · 🚀 已解锁：1/11</p>
+
+        <div id="moto-models">
+            <h2>🏍️ 摩托车品牌</h2>
+            <p class="intro">点车型 → 点“🚀 使用这辆摩托车” → 再按“🏁 开始游戏”！</p>
+            <div class="model-box">
+                <div class="model-card">
+                    <img src="model_sport.png" alt="本田">
+                    <h3>🏍️ 本田 Honda</h3>
+                    <p>全球最大的摩托车品牌之一！从代步小排量到顶级仿赛全都有，品质可靠、皮实耐用，是无数骑士的第一台车。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_yamaha.png" alt="雅马哈">
+                    <h3>🏍️ 雅马哈 Yamaha</h3>
+                    <p>从乐器起家到顶级机车，颜值与性能兼备！MT街车、R系列仿赛都是经典，声音动听、操控顺滑。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_adv.png" alt="川崎">
+                    <h3>🏍️ 川崎 Kawasaki</h3>
+                    <p>绿色猛兽！Ninja仿赛和Z街车动力暴力、极速惊人，是追求刺激的骑士最爱。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_scooter.png" alt="铃木">
+                    <h3>🏍️ 铃木 Suzuki</h3>
+                    <p>耐用省心、性价比之王！GSX-R系列赛道基因强大，皮实好骑，适合入门和长途。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_naked.png" alt="杜卡迪">
+                    <h3>🏍️ 杜卡迪 Ducati</h3>
+                    <p>意大利红色烈马！V缸声浪震撼，Monster街车和Panigale仿赛都是艺术品，贵族运动机车。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_cruiser.png" alt="哈雷">
+                    <h3>🏍️ 哈雷 Harley</h3>
+                    <p>美国经典巡航！轰鸣声浪独一无二，低矮霸气的外形，自由骑士的象征，长途骑行超舒服。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_race.png" alt="赛道赛车">
+                    <h3>🏆 赛道赛车</h3>
+                    <p>专业赛道猛兽！极致轻量、暴力加速、极限压弯，专为赛道而生，普通人驾驭不了的速度机器。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_vespa.png" alt="伟士牌">
+                    <h3>🛵 伟士牌 Vespa</h3>
+                    <p>经典意大利踏板车！时尚复古的外形，一部《罗马假日》让它风靡全球，都市通勤的潮流代表。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_italika.png" alt="Italika">
+                    <h3>🛵 Italika</h3>
+                    <p>墨西哥国民踏板车！经济实惠、皮实耐用，是拉美街头最常见的通勤好帮手。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_moped.png" alt="轻骑助力车">
+                    <h3>🛵 轻骑助力车</h3>
+                    <p>小巧省油、简单易骑！不需要高超车技，新手和长辈都能轻松上手，买菜代步神器。</p>
+                </div>
+                <div class="model-card">
+                    <img src="model_drifter.png" alt="漂移改装车">
+                    <h3>🏍️ Drifter改装车</h3>
+                    <p>酷炫的改装巡航车！加长前叉、高把手、夸张排气，独一无二的个性座驾，回头率百分百。</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="achieve-zone">
+            <h2>🏅 成就</h2>
+            <div id="achieve-list"></div>
+        </div>
+
+        <div id="magic-zone">
+            <h2>⚡ 魔法实验区</h2>
+            <button id="btn-rain" class="magic-btn">🔮 下一场表情雨！</button>
+            <div id="clock">🕐 加载中...</div>
+            <div id="secret" style="display:none;">🤖 彩蛋：这个网页是AI做的！</div>
+        </div>
 
         <a class="back-btn" id="back-home" href="index.html">⬅ 回到跑酷者的天台</a>
+
+        <h2>🎥 炫酷摩托车视频</h2>
+        <button id="moto-video-btn" class="reveal-btn">🎥 点击打开炫酷视频</button>
+        <div id="moto-video" style="display:none;">
+            <div class="video-box"></div>
+        </div>
     </div>
 
     <!-- 游戏：开始后变成全屏公路背景！ -->
     <div id="game">
         <p id="g-score">得分：0</p>
-        <p class="g-tip" id="g-tip">👉 ← → 键躲避车辆（手机：左右滑动）</p>
-        <img id="moto" src="moto_up.png" alt="🏍️">
+        <p id="g-speed">⚡ 速度：0 km/h</p>
+        <p class="g-tip" id="g-tip">👉 前方有90°弯道，按←→自己打弯 · ↑加速 ↓刹车 · X/🔥：极速 · Shift翘头💥 · 空格漂移💨</p>
+        <div id="road-canvas-wrap">
+            <canvas id="road-canvas"></canvas>
+        </div>
+        <img id="moto" src="moto_final.png" alt="🏍️">
+        <p id="wheelie-tip">💥 翘头中！转弯更灵活 · 速度更快！</p>
+        <button id="btn-wheelie">💥 翘头</button>
+        <p id="drift-tip">💨 漂移中！</p>
+        <button id="btn-drift">💨 漂移</button>
+        <p id="boost-tip">🔥 极速中！小心转弯！</p>
+        <button id="btn-boost">🔥 极速</button>
+        <p id="curve-msg"></p>
     </div>
 
-    <script>
-        // ⚡ 电器区：公路躲避小游戏！
-        var game = document.getElementById('game');
-        var moto = document.getElementById('moto');
-        var gScore = document.getElementById('g-score');
-        var gTip = document.getElementById('g-tip');
-        var content = document.getElementById('page-content');
-        var startBtn = document.getElementById('start-game');
-        var score = 0;
-        var running = false;
-        var cars = [];
-        var motoX = 0;          // 摩托车的左边位置
-        var roadWidth = 320;    // 路面宽度（启动时重新读）
-        var MOTO_W = 70;        // 摩托车大致宽度（俯视）
-        var gameLoop = null;
-        var spawnTimer = null;
+    <button id="btn-secret" class="egg-btn" title="秘密">🥚</button>
+    <div id="model-lightbox">
+        <button id="lb-close" class="lb-btn">✕</button>
+        <button id="lb-prev" class="lb-btn">◀</button>
+        <img id="lb-img" src="" alt="">
+        <h3 id="lb-name"></h3>
+        <p id="lb-desc"></p>
+        <p id="lb-stats"></p>
+        <button id="lb-use" class="magic-btn">🚀 使用这辆摩托车</button>
+        <button id="lb-next" class="lb-btn">▶</button>
+    </div>
 
-        // 🏁 开始游戏：内容飞走，游戏全屏！
-        function startMotoGame() {
-            // 页面内容向上飞走
-            content.classList.remove('fly-down');
-            content.classList.add('fly-up');
-            // 游戏变成全屏公路背景
-            game.classList.add('full');
-            game.style.display = 'block';
-            gTip.style.display = 'block';
-            startBtn.textContent = '🏁 开始游戏';
+    <div id="use-toast"></div>
 
-            cars.forEach(function (c) { c.remove(); });
-            cars = [];
-            score = 0;
-            gScore.textContent = '得分：0';
-            roadWidth = game.clientWidth;
-            motoX = (roadWidth - MOTO_W) / 2;
-            moto.style.left = motoX + 'px';
-            running = true;
-            clearInterval(gameLoop);
+    <div id="rain"></div>
+
+    <script>    // ⚡ 电器区：公路躲避小游戏（世界坐标 + 跟随相机，真正的90°弯道！）
+    var game = document.getElementById('game');
+    var moto = document.getElementById('moto');
+    var gScore = document.getElementById('g-score');
+    var gSpeed = document.getElementById('g-speed');
+    var gTip = document.getElementById('g-tip');
+    var content = document.getElementById('page-content');
+    var startBtn = document.getElementById('start-game');
+    var score = 0;
+    var running = false;
+    var cars = [];
+    var head = 0;           // 摩托车朝向（0=直行，负=左，正=右）
+    var s_m = 0;            // 摩托车沿路的距离
+    var latM = 0;           // 摩托车距路中心的横向偏移
+    var touchSteer = 0;     // 手机转向输入（-1..1）
+    var touchThrottle = 0;  // 手机油门输入
+    var W2 = 0, MOTO_SY = 0;        // 屏幕中心X、摩托屏幕行Y
+    var roadWidth = 320;
+    var MOTO_W = 58, MOTO_H = 126;
+    var MARGIN = 8;
+    var gameLoop = null;
+    var spawnTimer = null;
+    var keys = {};
+    var wheelieHeld = false;
+    var turnRisk = 0;
+    var MAX_RISK = 60;
+    var btnWheelie = document.getElementById('btn-wheelie');
+    var wheelieTip = document.getElementById('wheelie-tip');
+    var roadCanvas = document.getElementById('road-canvas');
+    var roadCtx = roadCanvas.getContext('2d');
+    var roadHalf = 0;
+    var roadPts = [];        // 路面点 {x, y, d}
+    var cornerList = [];     // 弯道区间 {s0, s1, dir}
+    var curX = 0, curY = 0, curA = 0;   // 路段生成游标
+    var roadLenTotal = 0;
+    var camS = 0;            // 相机沿路的距离
+    var camX = 0, camY = 0, camA = 0;
+    var cornerR = 0;
+    var turnsPassed = 0;
+    var spawnInterval = 900;
+    var curveMsg = document.getElementById('curve-msg');
+    var curveMsgTimer = null;
+    var slide = 0;
+    var driftHeld = false;
+    var btnDrift = document.getElementById('btn-drift');
+    var driftTip = document.getElementById('drift-tip');
+    var boostLeft = 0;          // 极速剩余帧数
+    var boostCooldown = 0;      // 极速冷却帧数
+    var btnBoost = document.getElementById('btn-boost');
+    var boostTip = document.getElementById('boost-tip');
+
+    // 🏍️ 每个品牌的固定属性：速度 / 操控 / 极速 / 价格 / 专属车身
+    var BRANDS = {
+        '本田':   { speed: 7, control: 7, boost: 16, price: 400,  shape: 'moto_brand_honda.png' },
+        '雅马哈': { speed: 7, control: 8, boost: 17, price: 500,  shape: 'moto_brand_yamaha.png' },
+        '川崎':   { speed: 9, control: 6, boost: 19, price: 800,  shape: 'moto_brand_kawasaki.png' },
+        '铃木':   { speed: 8, control: 7, boost: 17, price: 350,  shape: 'moto_brand_suzuki.png' },
+        '杜卡迪': { speed: 9, control: 7, boost: 19, price: 900,  shape: 'moto_brand_ducati.png' },
+        '哈雷':   { speed: 6, control: 5, boost: 14, price: 600,  shape: 'moto_brand_harley.png' },
+        '赛道赛车': { speed: 10, control: 8, boost: 20, price: 1500, shape: 'moto_brand_race.png' },
+        '伟士牌': { speed: 4, control: 8, boost: 11, price: 300,  shape: 'moto_brand_vespa.png' },
+        'Italika': { speed: 4, control: 7, boost: 11, price: 200, shape: 'moto_brand_italika.png' },
+        '轻骑':   { speed: 3, control: 6, boost: 10, price: 0,    shape: 'moto_brand_moped.png' },
+        'Drifter': { speed: 6, control: 6, boost: 15, price: 700, shape: 'moto_brand_drifter.png' }
+    };
+    function brandKeyOf(name) {
+        for (var k in BRANDS) {
+            if (name.indexOf(k) >= 0) return k;
+        }
+        return null;
+    }
+    var currentBrand = null;   // 当前选中的车
+    var currentBrandName = ''; // 当前选中的车名
+    var currentSpeed = 0;      // 当前实际速度（平滑变化）
+    // 💰 存档：最高分 / 积分 / 已拥有的车 / 成就
+    var bestScore = 0, points = 0, owned = ['轻骑'], unlocked = [];
+    try {
+        bestScore = parseInt(localStorage.getItem('motoBest') || '0', 10);
+        points = parseInt(localStorage.getItem('motoPoints') || '0', 10);
+        owned = JSON.parse(localStorage.getItem('motoOwned') || '["轻骑"]');
+        unlocked = JSON.parse(localStorage.getItem('motoAchievements') || '[]');
+    } catch (e) {}
+    function brandOf(name) {
+        for (var k in BRANDS) {
+            if (name.indexOf(k) >= 0) return BRANDS[k];
+        }
+        return null;
+    }
+
+    // 🔥 激活极速！
+    function activateBoost() {
+        if (!running) return;
+        if (boostCooldown > 0 || boostLeft > 0) return;
+        boostLeft = 75;         // 约2.5秒
+        boostCooldown = 150;    // 冷却5秒
+    }
+
+    // ---- 道路生成（世界坐标：直路 → 真90度弯 → 直路 → 真90度弯…） ----
+    function buildStraight(len) {
+        var n = Math.max(8, Math.round(len / 22));
+        for (var i = 1; i <= n; i++) {
+            var L = len / n;
+            curX += Math.sin(curA) * L;
+            curY -= Math.cos(curA) * L;
+            roadLenTotal += L;
+            roadPts.push({ x: curX, y: curY, d: roadLenTotal });
+        }
+    }
+    function buildCorner() {
+        var dir = Math.random() < 0.5 ? -1 : 1;   // 直接左转 或 直接右转90度
+        var R = cornerR;
+        var total = R * Math.PI / 2;              // 四分之一圆弧
+        var s0 = roadLenTotal;
+        var n = Math.max(14, Math.round(total / 14));
+        for (var i = 1; i <= n; i++) {
+            var Amid = curA + dir * ((i - 0.5) / n) * (Math.PI / 2);
+            var L = total / n;
+            curX += Math.sin(Amid) * L;
+            curY -= Math.cos(Amid) * L;
+            roadLenTotal += L;
+            roadPts.push({ x: curX, y: curY, d: roadLenTotal });
+        }
+        curA += dir * Math.PI / 2;   // 方向真的转了90度！
+        cornerList.push({ s0: s0, s1: roadLenTotal, dir: dir });
+    }
+    var ROAD_LEN = 300000;   // 整条路提前生成的长度（超长，够开很久！）
+    function generateWholeRoad() {
+        while (roadLenTotal < ROAD_LEN) {   // 一次性全部生成好！
+            var len = Math.max(1500, 1800 + Math.random() * 1000 - turnsPassed * 15);
+            if (roadPts.length === 1) len = 2200;   // 刚开始先直走很久
+            buildStraight(len);
+            buildCorner();
+        }
+    }
+    function roadDirAt(s) {
+        var lo = 0, hi = roadPts.length - 1;
+        while (hi - lo > 1) {
+            var mid = (lo + hi) >> 1;
+            if (roadPts[mid].d < s) lo = mid; else hi = mid;
+        }
+        var p1 = roadPts[lo], p2 = roadPts[hi];
+        return Math.atan2(p2.x - p1.x, -(p2.y - p1.y));
+    }
+    function roadAt(s) {
+        var lo = 0, hi = roadPts.length - 1;
+        while (hi - lo > 1) {
+            var mid = (lo + hi) >> 1;
+            if (roadPts[mid].d < s) lo = mid; else hi = mid;
+        }
+        var p1 = roadPts[lo], p2 = roadPts[hi];
+        var t = (s - p1.d) / Math.max(1, p2.d - p1.d);
+        var x = p1.x + (p2.x - p1.x) * t;
+        var y = p1.y + (p2.y - p1.y) * t;
+        var a = Math.atan2(p2.x - p1.x, -(p2.y - p1.y));   // 方向角
+        return { x: x, y: y, a: a };
+    }
+    function toScreen(wx, wy) {
+        var dx = wx - camX, dy = wy - camY;
+        var c = Math.cos(camA), s = Math.sin(camA);
+        return { x: W2 + dx * c + dy * s, y: MOTO_SY - dx * s + dy * c };
+    }
+
+    // 路面中心投影到某屏幕y时对应的世界距离（车从上往下走用）
+    function centerScreenYAt(s) {
+        var p = roadAt(s);
+        var dx = p.x - camX, dy = p.y - camY;
+        return MOTO_SY - dx * Math.sin(camA) + dy * Math.cos(camA);
+    }
+    function screenYToDist(screenY) {
+        var lo = Math.max(0, s_m - 500), hi = Math.min(roadLenTotal, s_m + game.clientHeight + 700);
+        for (var i = 0; i < 16; i++) {
+            var mid = (lo + hi) / 2;
+            if (centerScreenYAt(mid) < screenY) hi = mid; else lo = mid;
+        }
+        return (lo + hi) / 2;
+    }
+    function inCorner() {
+        for (var i = 0; i < cornerList.length; i++) {
+            if (s_m >= cornerList[i].s0 && s_m <= cornerList[i].s1) return true;
+        }
+        return false;
+    }
+
+    // ---- 画路面（相机旋转跟随，路永远朝上！） ----
+    function drawRoad() {
+        var w = game.clientWidth, h = game.clientHeight;
+        if (roadCanvas.width !== w || roadCanvas.height !== h) {
+            roadCanvas.width = w;
+            roadCanvas.height = h;
+        }
+        var ctx = roadCtx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.save();
+        ctx.translate(W2, MOTO_SY);
+        ctx.rotate(-camA);            // 👁️ 视角跟着路转！
+        ctx.translate(-camX, -camY);
+        var lo = s_m - 200, hi = s_m + h + 500;
+        var si = 0, ei = roadPts.length - 1;
+        while (roadPts[si].d < lo && si < ei) si++;
+        while (roadPts[ei].d > hi && ei > si) ei--;
+        if (ei - si < 2) { ctx.restore(); return; }
+        function trace(i1, i2) {
+            ctx.beginPath();
+            ctx.moveTo(roadPts[i1].x, roadPts[i1].y);
+            for (var i = i1 + 1; i <= i2; i++) ctx.lineTo(roadPts[i].x, roadPts[i].y);
+        }
+        trace(si, ei);
+        ctx.lineWidth = roadHalf * 2;
+        ctx.strokeStyle = 'rgba(46,48,58,0.95)';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        // 中间黄色虚线（边线已隐藏，转弯处更干净！）
+        trace(si, ei);
+        ctx.setLineDash([16, 26]);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255,217,102,0.9)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    // ---- 生成一辆车（世界坐标：沿路距离 + 车道） ----
+    function spawnCar() {
+        var c = document.createElement('div');
+        c.className = 'car';
+        var carImgs = ['car_silver_dn.png', 'car_red_dn.png', 'car_blue_dn.png', 'car_green_dn.png',
+                       'car_yellow_dn.png', 'car_orange_dn.png', 'car_purple_dn.png'];
+        var img = document.createElement('img');
+        img.src = carImgs[Math.floor(Math.random() * carImgs.length)];
+        img.alt = 'car';
+        c.appendChild(img);
+        game.appendChild(c);
+        cars.push({
+            el: c,
+            screenY: -(80 + Math.random() * 220),   // 从屏幕上方边缘出现！
+            lane: (Math.random() * 2 - 1) * (roadHalf - 50)
+        });
+    }
+
+    // ---- 开始游戏：内容飞走，游戏全屏！ ----
+    function startMotoGame() {
+        content.classList.remove('fly-down');
+        content.classList.add('fly-up');
+        game.classList.add('full');
+        game.style.display = 'block';
+        game.style.transform = '';
+        gTip.style.display = 'block';
+        startBtn.textContent = '🏁 开始游戏';
+        cars.forEach(function (cc) { cc.el.remove(); });
+        cars = [];
+        score = 0;
+        gScore.textContent = '得分：0 · 过弯：0';
+        W2 = game.clientWidth / 2;
+        MOTO_SY = game.clientHeight - 90;
+        roadWidth = game.clientWidth;
+        roadHalf = roadWidth * 0.40;
+        cornerR = roadWidth * 0.14;
+        roadPts = [{ x: 0, y: 0, d: 0 }];
+        cornerList = [];
+        curX = 0; curY = 0; curA = 0;
+        roadLenTotal = 0;
+        camS = 0;   // （保留变量，实际以 s_m 为准）
+        turnsPassed = 0;
+        head = 0; s_m = 0; latM = 0;
+        touchSteer = 0; touchThrottle = 0;
+        currentSpeed = 0;
+        boostLeft = 0; boostCooldown = 0;
+        boostTip.style.display = 'none';
+        btnBoost.textContent = '🔥 极速';
+        MOTO_H = moto.offsetHeight;
+        slide = 0; driftHeld = false;
+        driftTip.style.display = 'none';
+        wheelieHeld = false; turnRisk = 0;
+        wheelieTip.style.display = 'none';
+        curveMsg.style.display = 'none';
+        spawnInterval = 900;
+        running = true;
+        keys = {};
+        clearInterval(gameLoop);
+        clearInterval(spawnTimer);
+        gameLoop = setInterval(frame, 30);
+        spawnTimer = setInterval(spawnCar, spawnInterval);
+        generateWholeRoad();   // 🛣️ 开局一次性生成好整条路！
+    }
+
+    // ---- 每一帧 ----
+    function frame() {
+        if (!running) return;
+        var wheelie = !!keys['Shift'] || wheelieHeld;
+
+        // 🌪️ 过弯计数 + 难度提升
+        var nowTurns = 0;
+        for (var i = 0; i < cornerList.length; i++) {
+            if (cornerList[i].s0 < s_m) nowTurns++;
+        }
+        if (nowTurns > turnsPassed) {
+            turnsPassed = nowTurns;
+            curveMsg.textContent = '🌪️ 过弯第' + turnsPassed + '个！速度+难度提升！';
+            curveMsg.style.display = 'block';
+            clearTimeout(curveMsgTimer);
+            curveMsgTimer = setTimeout(function () { curveMsg.style.display = 'none'; }, 1600);
+        }
+        var carSpeed = (wheelie ? 15 : 11) + Math.min(8, turnsPassed * 1.5);
+        var newInt = Math.max(500, 900 - turnsPassed * 30);
+        if (newInt !== spawnInterval) {
+            spawnInterval = newInt;
             clearInterval(spawnTimer);
-            gameLoop = setInterval(frame, 30);
-            spawnTimer = setInterval(spawnCar, 900);   // 🚦 车来得更密！
+            spawnTimer = setInterval(spawnCar, spawnInterval);
         }
 
-        // 🚗 生成一辆车（真实俯视照片，随机颜色！）
-        function spawnCar() {
-            var c = document.createElement('div');
-            c.className = 'car';
-            var carImgs = ['car_silver_dn.png', 'car_red_dn.png', 'car_blue_dn.png', 'car_green_dn.png',
-                           'car_yellow_dn.png', 'car_orange_dn.png', 'car_purple_dn.png'];
-            var img = document.createElement('img');
-            img.src = carImgs[Math.floor(Math.random() * carImgs.length)];
-            img.alt = 'car';
-            c.appendChild(img);
-            var maxLeft = roadWidth - 82;
-            c.style.left = (8 + Math.random() * (maxLeft - 8)) + 'px';
-            c.style.top = '-100px';
-            game.appendChild(c);
-            cars.push(c);
+        // 📐 前方弯道自己打弯：←→转向（视角跟着你转！），↑↓油门/刹车
+        // 🔥 极速计时
+        if (boostLeft > 0) {
+            boostLeft--;
+            if (boostLeft <= 0) boostCooldown = 150;
+        } else if (boostCooldown > 0) {
+            boostCooldown--;
+        }
+        var boosting = boostLeft > 0;
+        boostTip.style.display = boosting ? 'block' : 'none';
+        btnBoost.textContent = boosting ? '🔥 极速中' : (boostCooldown > 0 ? '⏳ 冷却' : '🔥 极速');
+        var steer = 0;
+        if (keys['arrowleft'] || keys['a']) steer -= 1;
+        if (keys['arrowright'] || keys['d']) steer += 1;
+        steer += touchSteer;
+        // 🏍️ 每辆车的固定速度和操控！
+        var b = currentBrand || { speed: 5.5, control: 6, boost: 16 };
+        var turnRate = 0.035 + b.control * 0.005;   // 操控越好，转得越快
+        head += steer * (boosting ? 0.03 : (wheelie ? turnRate * 1.3 : turnRate));
+        var throttle = 0;
+        if (keys['arrowup'] || keys['w']) throttle += 1;
+        if (keys['arrowdown'] || keys['s']) throttle -= 1;
+        throttle += touchThrottle;
+        // 🚀 极速时速度爆表（每辆车极速不同！）—— 速度一点一点快速增加，不瞬间跳变！
+        var speedTarget = boosting ? b.boost : (wheelie ? b.speed + 2 : b.speed) + throttle * 2;
+        speedTarget = Math.max(-2, Math.min(boosting ? 20 : 12, speedTarget));
+        currentSpeed += (speedTarget - currentSpeed) * 0.08;   // 平滑加速/减速
+        if (Math.abs(speedTarget - currentSpeed) < 0.05) currentSpeed = speedTarget;
+        var speed = currentSpeed;
+        // ⚡ 速度表：实时显示当前速度（km/h）
+        gSpeed.textContent = '⚡ 速度：' + Math.round(Math.abs(speed) * 10) + ' km/h' + (currentBrandName ? ' · ' + currentBrandName : '');
+
+        // 摩托沿路推进 + 横向偏移（不拐弯就会被甩出路面！）
+        var rda = roadDirAt(s_m);
+        s_m += speed * Math.cos(head - rda);
+        latM += speed * Math.sin(head - rda);
+        // 🏁 开到路的尽头啦！
+        if (s_m > roadLenTotal - 200) {
+            endMotoGame('🏁 到达终点！你是最快的骑士！');
+            return;
+        }
+        var at = roadAt(s_m);
+        camX = at.x + Math.cos(at.a) * latM;
+        camY = at.y + Math.sin(at.a) * latM;
+        camA = head;   // 👁️ 视角跟着你转！
+
+        // 💨 漂移（侧滑）
+        var drifting = (keys[' '] === true) || driftHeld;
+        if (drifting) {
+            if (steer !== 0) slide += steer * 0.9;
+            slide *= 0.93;
+            latM += slide;
+            driftTip.style.display = 'block';
+        } else {
+            slide = 0;
+            driftTip.style.display = 'none';
         }
 
-        // 每一帧：车往下开 + 加分 + 碰撞检测
-        function frame() {
-            if (!running) return;
-            score++;
-            gScore.textContent = '得分：' + Math.floor(score / 10);
+        // 🛣️ 冲出公路才摔倒！（碰到线不算，放宽判定！）
+        if (Math.abs(latM) > roadHalf - MARGIN) {
+            endMotoGame('💥 冲出公路，摔倒了！');
+            return;
+        }
 
-            for (var i = cars.length - 1; i >= 0; i--) {
-                var c = cars[i];
-                var top = parseFloat(c.style.top);
-                c.style.top = (top + 11) + 'px';   // ⚡ 车速更快！
-
-                // 开出屏幕就删除
-                if (top > game.clientHeight) {
-                    c.remove();
-                    cars.splice(i, 1);
-                    continue;
-                }
-
-                // 撞到摩托车 → 游戏结束！
-                var m = moto.getBoundingClientRect();
-                var cc = c.getBoundingClientRect();
-                if (m.left < cc.right && m.right > cc.left && m.top < cc.bottom && m.bottom > cc.top) {
-                    endMotoGame();
+        // 🏍️ 摩托车固定在屏幕中央偏下（视角跟着它转）
+        moto.style.left = (W2 - MOTO_W / 2) + 'px';
+        moto.style.top = (MOTO_SY - MOTO_H / 2) + 'px';
+        if (wheelie) {
+            wheelieTip.style.display = 'block';
+            if (steer !== 0) {
+                turnRisk += 1.2;
+                if (turnRisk > MAX_RISK) {
+                    endMotoGame('💥 转弯太猛，摔倒了！');
                     return;
                 }
+                wheelieTip.textContent = turnRisk > MAX_RISK * 0.6
+                    ? '⚠️ 转弯太猛！快回正，要摔了！'
+                    : '💥 翘头中！转弯更灵活 · 速度更快！';
+            } else {
+                turnRisk = Math.max(0, turnRisk - 3);
+                wheelieTip.textContent = '💥 翘头中！转弯更灵活 · 速度更快！';
+            }
+            var lean = (steer < 0 ? -1 : 1) * Math.min(16, turnRisk / MAX_RISK * 16);
+            moto.style.transform = 'rotate(' + lean + 'deg) translateY(-6px)';
+        } else {
+            wheelieTip.style.display = 'none';
+            turnRisk = 0;
+            var driftAng = Math.max(-28, Math.min(28, slide * 4));
+            if (drifting) moto.style.transform = 'rotate(' + driftAng + 'deg)';
+            else if (steer !== 0) moto.style.transform = 'rotate(' + (steer * 10) + 'deg)';
+            else moto.style.transform = '';
+        }
+
+        // 🚗 车：从上方边缘出现，一直往下移动（跟着弯道走，不会突然冒出来！）
+        for (var i = cars.length - 1; i >= 0; i--) {
+            var car = cars[i];
+            car.screenY += carSpeed;   // ⬇️ 车一直向下移动！
+            if (car.screenY > game.clientHeight + 150) {
+                car.el.remove();
+                cars.splice(i, 1);
+                continue;
+            }
+            var s = screenYToDist(car.screenY);
+            var at = roadAt(s);
+            var wx = at.x + Math.cos(at.a) * car.lane;
+            var wy = at.y + Math.sin(at.a) * car.lane;
+            var sp = toScreen(wx, wy);
+            car.el.style.left = (sp.x - 35) + 'px';
+            car.el.style.top = (sp.y - 75) + 'px';
+            car.el.style.transform = 'rotate(' + ((at.a - camA) * 180 / Math.PI + 180) + 'deg)';
+
+            // 碰撞（转到摩托坐标系）
+            var mx = camX;
+            var my = camY;
+            var dx = wx - mx, dy = wy - my;
+            var rx = dx * Math.cos(camA) + dy * Math.sin(camA);
+            var ry = -dx * Math.sin(camA) + dy * Math.cos(camA);
+            if (Math.abs(rx) < (MOTO_W + 70) / 2 && Math.abs(ry) < (MOTO_H + 150) / 2) {
+                endMotoGame('💥 撞车啦！');
+                return;
             }
         }
 
-        // 💥 游戏结束：回到干净页面，按钮上显示得分！
-        function endMotoGame() {
-            running = false;
-            clearInterval(gameLoop);
-            clearInterval(spawnTimer);
-            // 内容飞回来，按钮归位
-            content.classList.remove('fly-up');
-            content.classList.add('fly-down');
-            // 全屏游戏缩回去隐藏，回到最初状态
-            game.classList.remove('full');
-            game.style.display = 'none';
-            gTip.style.display = 'none';
-            // 开始按钮变成"重玩"，显示得分（不弹重叠的框！）
-            startBtn.textContent = '💥 撞车啦！得分：' + Math.floor(score / 10) + '（点击重玩）';
-        }
+        // 🛣️ 画路面 + 👁️ 转弯时视野扩大（相机已旋转跟随）
+        drawRoad();
+        game.style.transform = inCorner() ? 'scale(0.92)' : '';
 
-        // 移动摩托车
-        function moveMoto(dx) {
-            motoX = Math.max(4, Math.min(roadWidth - MOTO_W - 4, motoX + dx));
-            moto.style.left = motoX + 'px';
-        }
+        score++;
+        gScore.textContent = '得分：' + Math.floor(score / 10) + ' · 过弯：' + turnsPassed;
+    }
 
-        // 手机：手指滑到哪里，摩托车就跟到哪里
-        function handleTouch(e) {
-            var rect = game.getBoundingClientRect();
-            var touchX = e.touches[0].clientX - rect.left;
-            motoX = Math.max(4, Math.min(roadWidth - MOTO_W - 4, touchX - MOTO_W / 2));
-            moto.style.left = motoX + 'px';
+    // 💥 游戏结束（msg是结束语）
+    function endMotoGame(msg) {
+        running = false;
+        clearInterval(gameLoop);
+        clearInterval(spawnTimer);
+        content.classList.remove('fly-up');
+        content.classList.add('fly-down');
+        game.classList.remove('full');
+        game.style.display = 'none';
+        game.style.transform = '';
+        gTip.style.display = 'none';
+        // 🏆 记录最高得分 + 赚积分 + 查成就
+        var run = Math.floor(score / 10);
+        if (run > bestScore) {
+            bestScore = run;
+            try { localStorage.setItem('motoBest', bestScore); } catch (e) {}
         }
+        points += run;
+        try { localStorage.setItem('motoPoints', points); } catch (e) {}
+        startBtn.textContent = msg + ' 得分：' + run + '（点击重玩）';
+        checkAchievements();
+        updateShopStats();
+        keys = {};
+        wheelieHeld = false;
+        turnRisk = 0;
+        slide = 0;
+        driftHeld = false;
+        boostLeft = 0;
+        boostCooldown = 0;
+        boostTip.style.display = 'none';
+        driftTip.style.display = 'none';
+        moto.style.transform = '';
+        wheelieTip.style.display = 'none';
+        curveMsg.style.display = 'none';
+    }
 
-        // 监听操作
-        document.getElementById('start-game').addEventListener('click', startMotoGame);
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); if (running) moveMoto(-18); }
-            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); if (running) moveMoto(18); }
+    // 手机：左滑右滑转向，上滑加速下滑刹车
+    function handleTouch(e) {
+        var rect = game.getBoundingClientRect();
+        var tx = e.touches[0].clientX - rect.left;
+        var ty = e.touches[0].clientY - rect.top;
+        touchSteer = Math.max(-1, Math.min(1, (tx - W2) / (W2 * 0.6)));
+        touchThrottle = ty < MOTO_SY - 40 ? 1 : (ty > MOTO_SY + 80 ? -1 : 0);
+    }
+    game.addEventListener('touchend', function () { touchSteer = 0; touchThrottle = 0; });
+
+    // 监听操作
+    document.getElementById('start-game').addEventListener('click', startMotoGame);
+    document.addEventListener('keydown', function (e) {
+        if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) e.preventDefault();
+        if (e.key === 'x' || e.key === 'X') { activateBoost(); }
+        var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        keys[k] = true;
+    });
+    document.addEventListener('keyup', function (e) {
+        var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        keys[k] = false;
+    });
+
+    // 💥 翘头按钮（手机/鼠标按住）
+    btnWheelie.addEventListener('touchstart', function (e) { e.preventDefault(); wheelieHeld = true; });
+    btnWheelie.addEventListener('touchend', function () { wheelieHeld = false; });
+    btnWheelie.addEventListener('touchcancel', function () { wheelieHeld = false; });
+    btnWheelie.addEventListener('mousedown', function () { wheelieHeld = true; });
+    btnWheelie.addEventListener('mouseup', function () { wheelieHeld = false; });
+
+    // 💨 漂移按钮（手机/鼠标按住）
+    btnDrift.addEventListener('touchstart', function (e) { e.preventDefault(); driftHeld = true; });
+    btnDrift.addEventListener('touchend', function () { driftHeld = false; });
+    btnDrift.addEventListener('touchcancel', function () { driftHeld = false; });
+    btnDrift.addEventListener('mousedown', function () { driftHeld = true; });
+    btnDrift.addEventListener('mouseup', function () { driftHeld = false; });
+
+    // 🔥 极速按钮（手机/鼠标）
+    btnBoost.addEventListener('touchstart', function (e) { e.preventDefault(); activateBoost(); });
+    btnBoost.addEventListener('click', function () { activateBoost(); });
+
+    game.addEventListener('touchstart', function (e) { if (!running) return; e.preventDefault(); handleTouch(e); }, { passive: false });
+    game.addEventListener('touchmove', function (e) { if (!running) return; e.preventDefault(); handleTouch(e); }, { passive: false });
+
+    // ⚡ 魔法实验区：下一场表情雨！
+    var RAIN_EMOJIS = ['🌈', '⭐', '🎈', '🎉', '✨', '💖', '🍀', '🔥', '🍦', '🚀', '🎊', '😄'];
+    document.getElementById('btn-rain').addEventListener('click', function () {
+        for (var i = 0; i < 45; i++) {
+            var e = document.createElement('div');
+            e.className = 'raindrop';
+            e.textContent = RAIN_EMOJIS[Math.floor(Math.random() * RAIN_EMOJIS.length)];
+            e.style.left = (Math.random() * 100) + '%';
+            e.style.fontSize = (22 + Math.random() * 42) + 'px';
+            e.style.animationDuration = (2.2 + Math.random() * 2.8) + 's';
+            e.style.animationDelay = (Math.random() * 1.5) + 's';
+            document.getElementById('rain').appendChild(e);
+            (function (el) {
+                setTimeout(function () { el.remove(); }, 8000);
+            })(e);
+        }
+    });
+
+    // 🕐 实时时钟：每秒更新一次！
+    function updateClock() {
+        var now = new Date();
+        var time = now.toLocaleTimeString('zh-CN', { hour12: false });
+        document.getElementById('clock').textContent = '🕐 ' + time;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // 🏍️ 车型大图查看：点卡片弹出，◀▶ 翻看其他车品！
+    var modelCards = document.querySelectorAll('#moto-models .model-card');
+    var models = [];
+    modelCards.forEach(function (card) {
+        models.push({
+            img: card.querySelector('img').src,
+            game: card.querySelector('img').src.replace('.png', '_game.png'),
+            name: card.querySelector('h3').textContent,
+            desc: card.querySelector('p').textContent
         });
-        game.addEventListener('touchstart', function (e) { if (!running) return; e.preventDefault(); handleTouch(e); }, { passive: false });
-        game.addEventListener('touchmove', function (e) { if (!running) return; e.preventDefault(); handleTouch(e); }, { passive: false });
-    </script>
+    });
+    var lb = document.getElementById('model-lightbox');
+    var lbImg = document.getElementById('lb-img');
+    var lbName = document.getElementById('lb-name');
+    var lbDesc = document.getElementById('lb-desc');
+    var lbStats = document.getElementById('lb-stats');
+    var cur = 0;
+    function showModel(i) {
+        cur = (i + models.length) % models.length;
+        lbImg.src = models[cur].img;
+        lbName.textContent = models[cur].name;
+        lbDesc.textContent = models[cur].desc;
+        var key = brandKeyOf(models[cur].name);
+        var bb = brandOf(models[cur].name);
+        if (bb) {
+            var hasIt = owned.indexOf(key) >= 0;
+            lbStats.textContent = '⚡ 速度：' + bb.speed + '  ·  🎮 操控：' + bb.control + '  ·  🚀 极速：' + bb.boost +
+                '  ·  💰 价格：' + (bb.price === 0 ? '免费' : bb.price + ' 积分' + (hasIt ? '（已拥有）' : ''));
+            document.getElementById('lb-use').textContent = hasIt ? '🚀 使用这辆摩托车' : '🔒 解锁并骑上（' + bb.price + ' 积分）';
+        }
+        lb.style.display = 'flex';
+    }
+    modelCards.forEach(function (card, i) {
+        card.addEventListener('click', function () { showModel(i); });
+    });
+    document.getElementById('lb-close').addEventListener('click', function () { lb.style.display = 'none'; });
+    document.getElementById('lb-prev').addEventListener('click', function () { showModel(cur - 1); });
+    document.getElementById('lb-next').addEventListener('click', function () { showModel(cur + 1); });
+
+    // 🚀 使用这辆摩托车：换上它的速度/操控/极速，保持俯视视角！
+    var useToast = document.getElementById('use-toast');
+    var useToastTimer = null;
+    document.getElementById('lb-use').addEventListener('click', function () {
+        var key = brandKeyOf(models[cur].name);
+        var bb = brandOf(models[cur].name);
+        if (!bb) return;
+        var hasIt = owned.indexOf(key) >= 0;
+        if (!hasIt) {
+            if (points < bb.price) {
+                useToast.textContent = '🔒 积分不够！需要 ' + bb.price + ' 积分（你有 ' + points + '）多跑几局赚积分吧！';
+                useToast.style.display = 'block';
+                clearTimeout(useToastTimer);
+                useToastTimer = setTimeout(function () { useToast.style.display = 'none'; }, 3000);
+                return;
+            }
+            points -= bb.price;
+            owned.push(key);
+            try {
+                localStorage.setItem('motoPoints', points);
+                localStorage.setItem('motoOwned', JSON.stringify(owned));
+            } catch (e) {}
+            useToast.textContent = '🎉 解锁「' + models[cur].name + '」！积分剩余：' + points;
+        } else {
+            useToast.textContent = '✅ 已骑上「' + models[cur].name + '」！';
+        }
+        currentBrand = bb;
+        currentBrandName = models[cur].name;
+        moto.src = bb.shape;
+        moto.style.filter = '';
+        lb.style.display = 'none';
+        useToast.style.display = 'block';
+        clearTimeout(useToastTimer);
+        useToastTimer = setTimeout(function () { useToast.style.display = 'none'; }, 3000);
+        updateShopStats();
+        checkAchievements();
+    });
+
+    // 🏅 成就系统
+    var ACHIEVEMENTS = [
+        { id: 'p100',  name: '🥉 初出茅庐', desc: '累计获得 100 积分', check: function () { return points >= 100; } },
+        { id: 'p500',  name: '🥈 小有名气', desc: '累计获得 500 积分', check: function () { return points >= 500; } },
+        { id: 'p1000', name: '🥇 老司机', desc: '累计获得 1000 积分', check: function () { return points >= 1000; } },
+        { id: 'b500',  name: '🏆 极速先锋', desc: '最高得分达到 500', check: function () { return bestScore >= 500; } },
+        { id: 'b1000', name: '💎 传奇骑士', desc: '最高得分达到 1000', check: function () { return bestScore >= 1000; } },
+        { id: 'n3',    name: '🚀 收藏家', desc: '拥有 3 辆摩托车', check: function () { return owned.length >= 3; } },
+        { id: 'n8',    name: '🏁 车王', desc: '拥有 8 辆摩托车', check: function () { return owned.length >= 8; } }
+    ];
+    function renderAchievements() {
+        var list = document.getElementById('achieve-list');
+        if (!list) return;
+        list.innerHTML = '';
+        ACHIEVEMENTS.forEach(function (a) {
+            var done = unlocked.indexOf(a.id) >= 0;
+            var div = document.createElement('div');
+            div.className = 'achieve' + (done ? ' done' : '');
+            div.textContent = (done ? '✅ ' : '🔒 ') + a.name + ' — ' + a.desc;
+            list.appendChild(div);
+        });
+    }
+    function checkAchievements() {
+        var newOnes = [];
+        ACHIEVEMENTS.forEach(function (a) {
+            if (unlocked.indexOf(a.id) < 0 && a.check()) {
+                unlocked.push(a.id);
+                newOnes.push(a.name);
+                try { localStorage.setItem('motoAchievements', JSON.stringify(unlocked)); } catch (e) {}
+            }
+        });
+        if (newOnes.length) {
+            useToast.textContent = '🎉 解锁成就：' + newOnes.join('、') + '！';
+            useToast.style.display = 'block';
+            clearTimeout(useToastTimer);
+            useToastTimer = setTimeout(function () { useToast.style.display = 'none'; }, 3500);
+        }
+        renderAchievements();
+    }
+    function updateShopStats() {
+        var el = document.getElementById('shop-stats');
+        if (el) {
+            el.textContent = '💰 积分：' + points + '  ·  🏆 最高得分：' + bestScore + '  ·  🚀 已解锁：' + owned.length + '/' + Object.keys(BRANDS).length;
+        }
+    }
+    updateShopStats();
+    renderAchievements();
+    // 🎥 炫酷摩托车视频：点一下打开，再点一下关闭！
+    var motoVideoOpen = false;
+    document.getElementById('moto-video-btn').addEventListener('click', function () {
+        var section = document.getElementById('moto-video');
+        var box = section.querySelector('.video-box');
+        if (motoVideoOpen) {
+            // 关闭：移除视频，藏起来
+            box.innerHTML = '';
+            section.style.display = 'none';
+            this.textContent = '🎥 点击打开炫酷视频';
+            motoVideoOpen = false;
+        } else {
+            // 打开：显示并加载视频
+            this.textContent = '✖ 关闭炫酷视频';
+            section.style.display = 'block';
+            var iframe = document.createElement('iframe');
+            iframe.src = 'https://player.bilibili.com/player.html?bvid=BV1uv411e712&page=1&high_quality=1&danmaku=0';
+            iframe.setAttribute('allowfullscreen', 'true');
+            iframe.setAttribute('scrolling', 'no');
+            box.appendChild(iframe);
+            motoVideoOpen = true;
+        }
+    });
+
+    // 🙈 显示/隐藏秘密：点一下出现，再点藏回去！
+    document.getElementById('btn-secret').addEventListener('click', function () {
+        var secret = document.getElementById('secret');
+        var btn = document.getElementById('btn-secret');
+        if (secret.style.display === 'none') {
+            secret.style.display = 'block';
+            btn.textContent = '🙈';
+        } else {
+            secret.style.display = 'none';
+            btn.textContent = '🥚';
+        }
+    });
+</script>
 
 </body>
 </html>
