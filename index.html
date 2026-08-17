@@ -12,7 +12,7 @@
             text-align: center;
             color: #fff;
             margin: 0;
-            padding: 40px 20px;
+            padding: 70px 20px 40px;
         }
         /* 背景图单独放一层：去掉遮罩 + 加一点对比度让画面更清晰 */
         body::before {
@@ -557,19 +557,127 @@
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
         }
+        /* 🧭 导航栏 */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1500;
+            background: rgba(20, 15, 10, 0.85);
+            backdrop-filter: blur(6px);
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            flex-wrap: wrap;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 18px;
+            font-size: 15px;
+            background: rgba(255, 126, 95, 0.25);
+            transition: background 0.2s;
+        }
+        nav a:hover {
+            background: rgba(255, 126, 95, 0.55);
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        #home, #about, #skills, #hobby-sec, #magic-zone, #video, #theme-section, #works, #contact {
+            scroll-margin-top: 70px;
+        }
+        /* 🖼️ 作品集 */
+        #works .work-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .work-card {
+            width: 240px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 14px;
+            color: #fff;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .work-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        .work-thumb {
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            border-radius: 10px;
+        }
+        .thumb-rooftop { background: linear-gradient(135deg, #ff7e5f, #feb47b); }
+        .thumb-moto { background: linear-gradient(135deg, #0f0c29, #302b63); }
+        .work-card h3 { margin: 10px 0 4px; font-size: 17px; }
+        .work-card p { font-size: 13px; opacity: 0.9; margin: 0; line-height: 1.5; }
+        /* 📮 联系我 */
+        #contact form {
+            max-width: 420px;
+            margin: 10px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #contact input, #contact textarea {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            font-family: inherit;
+        }
+        #contact input::placeholder, #contact textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        /* 🦶 页脚 */
+        footer {
+            margin-top: 40px;
+            padding: 18px;
+            opacity: 0.75;
+            font-size: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body>
 
-    <div class="hero">
+    <!-- 🧭 导航栏（每个部分都有名字，点按钮就能到！） -->
+    <nav>
+        <a href="#home">🏠 首页</a>
+        <a href="#about">👤 关于我</a>
+        <a href="#skills">🏃 技能</a>
+        <a href="#hobby-sec">🎮 爱好</a>
+        <a href="#magic-zone">⚡ 魔法</a>
+        <a href="#video">🎥 视频</a>
+        <a href="#theme-section">🌍 主题</a>
+        <a href="#works">🖼️ 作品集</a>
+        <a href="#contact">📮 联系我</a>
+    </nav>
+
+    <div class="hero" id="home">
         <h1>🏙️ 跑酷者的天台</h1>
         <p class="author">欢迎来到我的天台 · 让风带你飞！🌇</p>
     </div>
 
-    <h2>📖 关于我</h2>
+    <h2 id="about">📖 关于我</h2>
     <p class="intro">我是一名城市跑酷爱好者！喜欢在高楼之间穿梭，翻越每一道障碍，在橙红色的夕阳下奔跑。欢迎常来我的天台坐坐！😄</p>
 
-    <h2>🏃 我的跑酷技能</h2>
+    <h2 id="skills">🏃 我的跑酷技能</h2>
     <ul>
         <li>🧗 翻墙</li>
         <li>🤸 跳跃</li>
@@ -577,7 +685,7 @@
         <li>🏃 疾走</li>
     </ul>
 
-    <h2>🎮 我的爱好</h2>
+    <h2 id="hobby-sec">🎮 我的爱好</h2>
     <ul id="hobbies">
         <li id="hobby-game">
             <div class="hobby-inner">
@@ -628,7 +736,7 @@
     </div>
     <p class="tip" id="tipText" style="display:none;">👉 🖱️ 鼠标点得越快，小人跑得越快！ · 空格/↑：跳跃 · ↓/S：滑铲 · Shift：疾跑💨 · 💰金币：+10分，跑过去就能捡！</p>
 
-    <h2>🎥 酷炫跑酷视频</h2>
+    <h2 id="video">🎥 酷炫跑酷视频</h2>
     <button id="open-video" class="reveal-btn">🎥 点击打开跑酷视频</button>
     <div id="video-section" style="display:none;">
         <div class="video-box" id="video-box"></div>
@@ -659,6 +767,40 @@
         <button id="btn-rain" class="magic-btn">🔮 下一场表情雨！</button>
         <div id="clock">🕐 加载中...</div>
     </div>
+
+    <!-- 🖼️ 作品集 -->
+    <section id="works">
+        <h2>🖼️ 我的作品集</h2>
+        <div class="work-grid">
+            <a class="work-card" href="index.html">
+                <div class="work-thumb thumb-rooftop">🏙️</div>
+                <h3>跑酷者的天台</h3>
+                <p>我的主页：跑酷小游戏、音乐播放器、炫酷视频、表情雨魔法！</p>
+            </a>
+            <a class="work-card" href="moto.html">
+                <div class="work-thumb thumb-moto">🏍️</div>
+                <h3>摩托飞驰</h3>
+                <p>摩托车网页：90°弯道竞速、11种品牌解锁、购车 + 成就系统！</p>
+            </a>
+        </div>
+    </section>
+
+    <!-- 📮 联系我 -->
+    <section id="contact">
+        <h2>📮 联系我</h2>
+        <form id="contact-form">
+            <input type="text" placeholder="✉️ 你的名字" required>
+            <input type="email" placeholder="📧 你的邮箱" required>
+            <input type="text" placeholder="🎵 你喜欢的音乐 / 最近单曲循环">
+            <textarea placeholder="📝 留言内容…" rows="4"></textarea>
+            <button type="submit" class="magic-btn">🚀 发送</button>
+        </form>
+    </section>
+
+    <!-- 🦶 页脚 -->
+    <footer>
+        <p>🏙️ 跑酷者的天台 © 2024 · 用 ❤️ 和代码做的网页</p>
+    </footer>
 
     <div id="rain"></div>
 
@@ -929,6 +1071,12 @@
             clearInterval(spawnTimer);
             clearInterval(coinTimer);
             gameoverText.style.display = 'block';
+            // 🗄️ 隐藏数据库：保存最高得分（页面不显示，存进浏览器）
+            try {
+                var runScore = Math.floor(score / 10);
+                var best = parseInt(localStorage.getItem('rooftopBest') || '0', 10);
+                if (runScore > best) localStorage.setItem('rooftopBest', runScore);
+            } catch (e) {}
         }
 
         // 🎮 点击上面的爱好按钮，才显示小游戏！
@@ -1336,6 +1484,14 @@
         }
         updateClock();                       // 先立刻显示一次
         setInterval(updateClock, 1000);      // 之后每秒自动更新
+        // 📮 联系我：发送演示
+        var contactBtn = document.querySelector('#contact-form button');
+        document.getElementById('contact-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            this.reset();
+            contactBtn.textContent = '✅ 已收到！谢谢～';
+            setTimeout(function () { contactBtn.textContent = '🚀 发送'; }, 2000);
+        });
     </script>
 
 </body>

@@ -237,7 +237,7 @@
         /* 💥 翘头按钮（手机用） */
         #btn-wheelie {
             position: absolute;
-            bottom: 14px;
+            top: 52px;
             right: 14px;
             padding: 10px 18px;
             border: none;
@@ -268,7 +268,7 @@
         /* 💨 漂移按钮（手机用） */
         #btn-drift {
             position: absolute;
-            bottom: 14px;
+            top: 52px;
             left: 14px;
             padding: 10px 18px;
             border: none;
@@ -299,7 +299,7 @@
         /* 🔥 极速按钮（手机用） */
         #btn-boost {
             position: absolute;
-            bottom: 14px;
+            top: 92px;
             left: 50%;
             transform: translateX(-50%);
             padding: 10px 18px;
@@ -621,6 +621,66 @@
             font-size: 16px;
             white-space: nowrap;
         }
+        /* 📖 玩法说明弹窗 */
+        #howto {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 16, 0.92);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #howto ul {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+            font-size: 16px;
+            line-height: 2.1;
+            max-width: 480px;
+        }
+        #howto li { color: #fff; }
+        #howto h2 { margin-bottom: 6px; }
+        /* 🎱 魔法小球碗 */
+        #ball-zone {
+            margin: 40px auto 20px;
+        }
+        #ball-canvas {
+            width: 100%;
+            max-width: 760px;
+            height: 420px;
+            background: rgba(20, 20, 30, 0.55);
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        /* 🎛️ 小球数量调节 */
+        #ball-controls {
+            margin: 14px auto 10px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #ball-controls input[type="range"] {
+            width: 220px;
+            accent-color: #ff8e3c;
+            cursor: pointer;
+        }
+        #ball-count-label {
+            display: inline-block;
+            min-width: 36px;
+            font-weight: bold;
+            color: #ffd93d;
+        }
     </style>
 </head>
 <body>
@@ -730,13 +790,23 @@
         <div id="moto-video" style="display:none;">
             <div class="video-box"></div>
         </div>
+
+        <div id="ball-zone">
+            <h2>🎱 魔法小球碗</h2>
+            <p class="intro">🖱️ 用鼠标在碗里搅一搅，小球会被你的鼠标推开哦！</p>
+            <div id="ball-controls">
+                <label for="ball-count">🎱 小球数量：</label>
+                <input type="range" id="ball-count" min="10" max="300" value="150">
+                <span id="ball-count-label">150</span>
+            </div>
+            <canvas id="ball-canvas" width="760" height="420"></canvas>
+        </div>
     </div>
 
     <!-- 游戏：开始后变成全屏公路背景！ -->
     <div id="game">
         <p id="g-score">得分：0</p>
         <p id="g-speed">⚡ 速度：0 km/h</p>
-        <p class="g-tip" id="g-tip">👉 前方有90°弯道，按←→自己打弯 · ↑加速 ↓刹车 · X/🔥：极速 · Shift翘头💥 · 空格漂移💨</p>
         <div id="road-canvas-wrap">
             <canvas id="road-canvas"></canvas>
         </div>
@@ -764,6 +834,21 @@
 
     <div id="use-toast"></div>
 
+    <!-- 📖 玩法说明（点开始游戏后弹出） -->
+    <div id="howto" style="display:none;">
+        <h2>🏍️ 玩法说明</h2>
+        <ul>
+            <li>🕹️ 左转：<b>A / ←</b> 一直按住 · 右转：<b>D / →</b> 一直按住</li>
+            <li>⬆️ 加速：<b>W / ↑</b> · 减速/刹车：<b>S / ↓</b></li>
+            <li>🔥 极速：<b>X</b>（爆发极速，冷却后可用）</li>
+            <li>💥 翘头：<b>Shift</b>（加速，转太猛会摔！）</li>
+            <li>💨 漂移：<b>空格</b>（侧滑过弯）</li>
+            <li>🛣️ 前方有90°弯道，跟着弯道走，别冲出路面！</li>
+            <li>💰 每局得分=积分，可解锁更多品牌摩托车！</li>
+        </ul>
+        <button id="howto-start" class="start-btn">🚀 开始游戏</button>
+    </div>
+
     <div id="rain"></div>
 
     <script>    // ⚡ 电器区：公路躲避小游戏（世界坐标 + 跟随相机，真正的90°弯道！）
@@ -771,7 +856,6 @@
     var moto = document.getElementById('moto');
     var gScore = document.getElementById('g-score');
     var gSpeed = document.getElementById('g-speed');
-    var gTip = document.getElementById('g-tip');
     var content = document.getElementById('page-content');
     var startBtn = document.getElementById('start-game');
     var score = 0;
@@ -900,6 +984,14 @@
             buildCorner();
         }
     }
+    // 🛣️ 边走边把更远的路生成出来：前方永远延伸非常远（比车更远！）
+    function ensureRoadAhead() {
+        while (roadLenTotal < s_m + game.clientHeight + 32000) {   // 路生成到车的前方更远处！
+            var len = Math.max(1500, 1800 + Math.random() * 1000);
+            buildStraight(len);
+            buildCorner();
+        }
+    }
     function roadDirAt(s) {
         var lo = 0, hi = roadPts.length - 1;
         while (hi - lo > 1) {
@@ -963,7 +1055,7 @@
         ctx.translate(W2, MOTO_SY);
         ctx.rotate(-camA);            // 👁️ 视角跟着路转！
         ctx.translate(-camX, -camY);
-        var lo = s_m - 200, hi = s_m + h + 500;
+        var lo = s_m - 20000, hi = s_m + h + 5000;   // 🛣️ 身后保留超长（转弯时也看得见！）前方延伸非常远！
         var si = 0, ei = roadPts.length - 1;
         while (roadPts[si].d < lo && si < ei) si++;
         while (roadPts[ei].d > hi && ei > si) ei--;
@@ -989,7 +1081,7 @@
     }
 
     // ---- 生成一辆车（世界坐标：沿路距离 + 车道） ----
-    function spawnCar() {
+    function placeCarAt(s) {
         var c = document.createElement('div');
         c.className = 'car';
         var carImgs = ['car_silver_dn.png', 'car_red_dn.png', 'car_blue_dn.png', 'car_green_dn.png',
@@ -999,21 +1091,33 @@
         img.alt = 'car';
         c.appendChild(img);
         game.appendChild(c);
-        cars.push({
-            el: c,
-            screenY: -(80 + Math.random() * 220),   // 从屏幕上方边缘出现！
-            lane: (Math.random() * 2 - 1) * (roadHalf - 50)
-        });
+        cars.push({ el: c, s: s, lane: (Math.random() * 2 - 1) * (roadHalf - 50) });
+    }
+    // 🚗 提前生成：把前方一大段路的车全部放好！（不用定时器现造）
+    function ensureCarsAhead() {
+        var maxS = s_m;
+        for (var i = 0; i < cars.length; i++) if (cars[i].s > maxS) maxS = cars[i].s;
+        var gap = 420 + Math.random() * 200;
+        while (maxS < s_m + 30000) {   // 前方30000像素内车辆全部提前生成好！
+            maxS += gap;
+            placeCarAt(maxS);
+            gap = 420 + Math.random() * 200;
+        }
     }
 
-    // ---- 开始游戏：内容飞走，游戏全屏！ ----
+    // ---- 开始游戏：内容飞走，游戏全屏，先弹玩法说明！ ----
     function startMotoGame() {
         content.classList.remove('fly-down');
         content.classList.add('fly-up');
         game.classList.add('full');
         game.style.display = 'block';
         game.style.transform = '';
-        gTip.style.display = 'block';
+        setupScene();   // 准备场景（不开始）
+        document.getElementById('howto').style.display = 'flex';   // 📖 弹出玩法说明！
+    }
+
+    // ---- 准备场景（重置 + 生成路，但不开始游戏循环） ----
+    function setupScene() {
         startBtn.textContent = '🏁 开始游戏';
         cars.forEach(function (cc) { cc.el.remove(); });
         cars = [];
@@ -1043,13 +1147,25 @@
         wheelieTip.style.display = 'none';
         curveMsg.style.display = 'none';
         spawnInterval = 900;
-        running = true;
+        running = false;
         keys = {};
         clearInterval(gameLoop);
         clearInterval(spawnTimer);
+        generateWholeRoad();   // 🛣️ 整条路提前生成好！
+        ensureRoadAhead();     // 并确保前方很远都有路！
+        var cam0 = roadAt(s_m);
+        camX = cam0.x; camY = cam0.y; camA = cam0.a;
+        drawRoad();            // 先画一帧路面当背景
+    }
+
+    // ---- 真正开始跑！ ----
+    function beginRun() {
+        document.getElementById('howto').style.display = 'none';
+        running = true;
+        clearInterval(gameLoop);
+        clearInterval(spawnTimer);
         gameLoop = setInterval(frame, 30);
-        spawnTimer = setInterval(spawnCar, spawnInterval);
-        generateWholeRoad();   // 🛣️ 开局一次性生成好整条路！
+        ensureCarsAhead();   // 🚗 开局把车提前生成好！
     }
 
     // ---- 每一帧 ----
@@ -1070,12 +1186,7 @@
             curveMsgTimer = setTimeout(function () { curveMsg.style.display = 'none'; }, 1600);
         }
         var carSpeed = (wheelie ? 15 : 11) + Math.min(8, turnsPassed * 1.5);
-        var newInt = Math.max(500, 900 - turnsPassed * 30);
-        if (newInt !== spawnInterval) {
-            spawnInterval = newInt;
-            clearInterval(spawnTimer);
-            spawnTimer = setInterval(spawnCar, spawnInterval);
-        }
+        ensureCarsAhead();   // 🚗 保持前方车辆提前生成好（不在眼前现造）
 
         // 📐 前方弯道自己打弯：←→转向（视角跟着你转！），↑↓油门/刹车
         // 🔥 极速计时
@@ -1102,7 +1213,7 @@
         throttle += touchThrottle;
         // 🚀 极速时速度爆表（每辆车极速不同！）—— 速度一点一点快速增加，不瞬间跳变！
         var speedTarget = boosting ? b.boost : (wheelie ? b.speed + 2 : b.speed) + throttle * 2;
-        speedTarget = Math.max(-2, Math.min(boosting ? 20 : 12, speedTarget));
+        speedTarget = Math.max(0, Math.min(boosting ? 20 : 12, speedTarget));   // 🚫 不倒车，只前进！
         currentSpeed += (speedTarget - currentSpeed) * 0.08;   // 平滑加速/减速
         if (Math.abs(speedTarget - currentSpeed) < 0.05) currentSpeed = speedTarget;
         var speed = currentSpeed;
@@ -1119,9 +1230,11 @@
             return;
         }
         var at = roadAt(s_m);
-        camX = at.x + Math.cos(at.a) * latM;
-        camY = at.y + Math.sin(at.a) * latM;
+        camX = at.x;                     // 📷 镜头固定在路中心！
+        camY = at.y;
         camA = head;   // 👁️ 视角跟着你转！
+        var motoWX = camX + Math.cos(at.a) * latM;   // 摩托车真实位置
+        var motoWY = camY + Math.sin(at.a) * latM;
 
         // 💨 漂移（侧滑）
         var drifting = (keys[' '] === true) || driftHeld;
@@ -1135,14 +1248,14 @@
             driftTip.style.display = 'none';
         }
 
-        // 🛣️ 冲出公路才摔倒！（碰到线不算，放宽判定！）
-        if (Math.abs(latM) > roadHalf - MARGIN) {
+        // 🛣️ 冲出公路才摔倒！（摩托车中心开出路面才算，你能看到自己偏到路边！）
+        if (Math.abs(latM) > roadHalf + MARGIN) {
             endMotoGame('💥 冲出公路，摔倒了！');
             return;
         }
 
-        // 🏍️ 摩托车固定在屏幕中央偏下（视角跟着它转）
-        moto.style.left = (W2 - MOTO_W / 2) + 'px';
+        // 🏍️ 摩托车显示在真实位置（能看到自己往路边偏，不再永远居中！）
+        moto.style.left = (W2 + latM - MOTO_W / 2) + 'px';
         moto.style.top = (MOTO_SY - MOTO_H / 2) + 'px';
         if (wheelie) {
             wheelieTip.style.display = 'block';
@@ -1170,27 +1283,33 @@
             else moto.style.transform = '';
         }
 
-        // 🚗 车：从上方边缘出现，一直往下移动（跟着弯道走，不会突然冒出来！）
+        // 🚗 车：自己在动，迎面向你驶来！（转弯时跟着弯道真转弯）
+        var carMoveSpeed = 3 + Math.min(5, turnsPassed * 0.5);
         for (var i = cars.length - 1; i >= 0; i--) {
             var car = cars[i];
-            car.screenY += carSpeed;   // ⬇️ 车一直向下移动！
-            if (car.screenY > game.clientHeight + 150) {
+            car.s -= carMoveSpeed;   // ⬇️ 车主动向你开过来！
+            if (car.s < s_m - 300) {
                 car.el.remove();
                 cars.splice(i, 1);
                 continue;
             }
-            var s = screenYToDist(car.screenY);
-            var at = roadAt(s);
+            var at = roadAt(car.s);
             var wx = at.x + Math.cos(at.a) * car.lane;
             var wy = at.y + Math.sin(at.a) * car.lane;
             var sp = toScreen(wx, wy);
-            car.el.style.left = (sp.x - 35) + 'px';
-            car.el.style.top = (sp.y - 75) + 'px';
-            car.el.style.transform = 'rotate(' + ((at.a - camA) * 180 / Math.PI + 180) + 'deg)';
+            // 在屏幕外就先隐藏（从边缘自然进出，不乱跳）
+            if (sp.x < -120 || sp.x > game.clientWidth + 120 || sp.y < -160 || sp.y > game.clientHeight + 160) {
+                car.el.style.display = 'none';
+            } else {
+                car.el.style.display = 'block';
+                car.el.style.left = (sp.x - 35) + 'px';
+                car.el.style.top = (sp.y - 75) + 'px';
+                car.el.style.transform = 'rotate(' + ((at.a - camA) * 180 / Math.PI) + 'deg)';   // 🚗 车头朝下（图本身朝下，零偏移！）
+            }
 
             // 碰撞（转到摩托坐标系）
-            var mx = camX;
-            var my = camY;
+            var mx = motoWX;
+            var my = motoWY;
             var dx = wx - mx, dy = wy - my;
             var rx = dx * Math.cos(camA) + dy * Math.sin(camA);
             var ry = -dx * Math.sin(camA) + dy * Math.cos(camA);
@@ -1201,6 +1320,8 @@
         }
 
         // 🛣️ 画路面 + 👁️ 转弯时视野扩大（相机已旋转跟随）
+        // 🛣️ 边走边生成更远的路，前方永远延伸！
+        ensureRoadAhead();
         drawRoad();
         game.style.transform = inCorner() ? 'scale(0.92)' : '';
 
@@ -1218,7 +1339,6 @@
         game.classList.remove('full');
         game.style.display = 'none';
         game.style.transform = '';
-        gTip.style.display = 'none';
         // 🏆 记录最高得分 + 赚积分 + 查成就
         var run = Math.floor(score / 10);
         if (run > bestScore) {
@@ -1256,6 +1376,7 @@
 
     // 监听操作
     document.getElementById('start-game').addEventListener('click', startMotoGame);
+    document.getElementById('howto-start').addEventListener('click', beginRun);
     document.addEventListener('keydown', function (e) {
         if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) e.preventDefault();
         if (e.key === 'x' || e.key === 'X') { activateBoost(); }
@@ -1475,6 +1596,154 @@
             btn.textContent = '🥚';
         }
     });
+
+    // 🎱 魔法小球碗：碗里的小球 + 鼠标碰撞箱！
+    (function () {
+        var canvas = document.getElementById('ball-canvas');
+        var ctx = canvas.getContext('2d');
+        var W = canvas.width, H = canvas.height;
+        var mouse = { x: -999, y: -999 };
+        var MR = 14;   // 🖱️ 鼠标控制的小手更小、更精准
+        var COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#b980f0', '#ff8e3c', '#ff5da2', '#4dd0e1'];
+        var balls = [];
+
+        function makeBall() {
+            var r = 7 + Math.random() * 6;
+            var c = COLORS[Math.floor(Math.random() * COLORS.length)];
+            // 🖼️ 预渲染小球贴图（画一次存好，每帧直接贴，超流畅！）
+            var spr = document.createElement('canvas');
+            spr.width = spr.height = Math.ceil(r * 2.2);
+            var sc = spr.getContext('2d');
+            var scx = spr.width / 2, scy = spr.height / 2;
+            var bg = sc.createRadialGradient(scx - r * 0.3, scy - r * 0.3, r * 0.2, scx, scy, r);
+            bg.addColorStop(0, '#ffffff');
+            bg.addColorStop(0.4, c);
+            bg.addColorStop(1, c);
+            sc.beginPath();
+            sc.arc(scx, scy, r, 0, Math.PI * 2);
+            sc.fillStyle = bg;
+            sc.fill();
+            return {
+                x: r + Math.random() * (W - 2 * r),
+                y: r + Math.random() * Math.max(20, H * 0.4 - 2 * r),   // 从上方一起落下，快速堆好！
+                vx: (Math.random() - 0.5) * 3,
+                vy: (Math.random() - 0.5) * 3,
+                r: r,
+                c: c,
+                sprite: spr
+            };
+        }
+        for (var i = 0; i < 150; i++) balls.push(makeBall());   // 🎱 小球数量增加非常多！
+
+        // 🎛️ 玩家可以自己调小球数量（滑块）！
+        var countInput = document.getElementById('ball-count');
+        var countLabel = document.getElementById('ball-count-label');
+        function setBallCount(n) {
+            while (balls.length < n) balls.push(makeBall());   // 加球
+            if (balls.length > n) balls.length = n;            // 减球
+            countLabel.textContent = n;
+        }
+        countInput.addEventListener('input', function () {
+            setBallCount(parseInt(countInput.value, 10) || 10);
+        });
+
+        // 🖱️ 鼠标位置（换算到画布坐标）
+        canvas.addEventListener('mousemove', function (e) {
+            var rect = canvas.getBoundingClientRect();
+            mouse.x = (e.clientX - rect.left) * W / rect.width;
+            mouse.y = (e.clientY - rect.top) * H / rect.height;
+        });
+        canvas.addEventListener('mouseleave', function () { mouse.x = -999; mouse.y = -999; });
+
+        function step() {
+            var G = 0.3;   // 🌍 重力！
+            var t = Date.now();
+            for (var i = 0; i < balls.length; i++) {
+                var b = balls[i];
+                // 🎵 持续能量：每颗球轻轻流动（永动！但幅度小，顺滑不抽搐）
+                b.vx += Math.sin((t + i * 37) / 420) * 0.06;
+                b.vy += Math.cos((t + i * 53) / 380) * 0.03;
+                b.vy += G;
+                b.x += b.vx; b.y += b.vy;
+                b.vx *= 0.99; b.vy *= 0.99;   // 阻尼（防能量越积越多）
+
+                // 🛡️ 速度上限：防止爆走抽搐！
+                var spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                if (spd > 7) { b.vx = b.vx / spd * 7; b.vy = b.vy / spd * 7; }
+
+                // ⬜ 画布四边：撞边反弹（顺滑）
+                if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.85; }
+                if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.85; }
+                if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.85; }
+                if (b.y + b.r > H) { b.y = H - b.r; b.vy = -Math.abs(b.vy) * 0.85; }
+
+                // 🖱️ 鼠标碰撞箱：把小球推开！
+                var mdx = b.x - mouse.x, mdy = b.y - mouse.y;
+                var md = Math.sqrt(mdx * mdx + mdy * mdy);
+                if (md < MR + b.r && md > 0) {
+                    var mnx = mdx / md, mny = mdy / md;
+                    b.x = mouse.x + mnx * (MR + b.r);
+                    b.y = mouse.y + mny * (MR + b.r);
+                    b.vx += mnx * 5;
+                    b.vy += mny * 5;
+                }
+            }
+            // ⚪ 球与球：稳定碰撞（每帧最多推2px，弹力0.5，防抽搐）
+            var SKIP = 30;
+            for (var i = 0; i < balls.length; i++) {
+                var a = balls[i];
+                for (var j = i + 1; j < balls.length; j++) {
+                    var c = balls[j];
+                    var ddx = c.x - a.x;
+                    if (ddx > SKIP || ddx < -SKIP) continue;
+                    var ddy = c.y - a.y;
+                    if (ddy > SKIP || ddy < -SKIP) continue;
+                    var dd = Math.sqrt(ddx * ddx + ddy * ddy);
+                    var minD = a.r + c.r;
+                    if (dd < minD && dd > 0.001) {
+                        var nx = ddx / dd, ny = ddy / dd;
+                        // 位置分离：每帧最多推2px（不会一下跳出去再弹回来！）
+                        var ov = Math.min((minD - dd) * 0.5, 2);
+                        a.x -= nx * ov; a.y -= ny * ov;
+                        c.x += nx * ov; c.y += ny * ov;
+                        // 只处理"正在靠近"，弹力0.5（顺滑不抽）
+                        var rv = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+                        if (rv < 0) {
+                            var imp = -(1 + 0.5) * rv * 0.5;
+                            a.vx -= imp * nx; a.vy -= imp * ny;
+                            c.vx += imp * nx; c.vy += imp * ny;
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            // ⚪ 画小球（直接贴预渲染好的贴图，超快不卡！）
+            for (var i = 0; i < balls.length; i++) {
+                var b = balls[i];
+                ctx.drawImage(b.sprite, b.x - b.sprite.width / 2, b.y - b.sprite.height / 2);
+            }
+            // 🖱️ 画鼠标碰撞箱
+            if (mouse.x > -100) {
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, MR, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                ctx.fill();
+            }
+        }
+
+        function loop() {
+            step();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    })();
 </script>
 
 </body>
