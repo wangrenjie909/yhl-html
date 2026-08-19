@@ -1127,7 +1127,7 @@
         MOTO_SY = game.clientHeight - 90;
         roadWidth = game.clientWidth;
         roadHalf = roadWidth * 0.40;
-        cornerR = roadWidth * 0.14;
+        cornerR = roadWidth * 0.45;   // 🛣️ 弯道半径>路半宽：转弯处路面不再自己叠自己！
         roadPts = [{ x: 0, y: 0, d: 0 }];
         cornerList = [];
         curX = 0; curY = 0; curA = 0;
@@ -1297,8 +1297,8 @@
             var wx = at.x + Math.cos(at.a) * car.lane;
             var wy = at.y + Math.sin(at.a) * car.lane;
             var sp = toScreen(wx, wy);
-            // 在屏幕外就先隐藏（从边缘自然进出，不乱跳）
-            if (sp.x < -120 || sp.x > game.clientWidth + 120 || sp.y < -160 || sp.y > game.clientHeight + 160) {
+            // 只藏掉“很远处”的车（转弯时近处的车会从屏幕边缘自然滑进来，不突然冒出来）
+            if (car.s < s_m - 400 || car.s > s_m + game.clientHeight + 6000) {
                 car.el.style.display = 'none';
             } else {
                 car.el.style.display = 'block';

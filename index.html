@@ -32,11 +32,99 @@
         }
         /* 🏙️ 主视觉：一开始就展示整个天台！ */
         .hero {
-            padding: 30px 20px;
+            max-width: 640px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);   /* 🔥 橙红渐变门面！ */
+            border-radius: 40px;   /* 胶囊形，不再又长又宽！ */
+            box-shadow: 0 8px 30px rgba(255, 126, 95, 0.35);
         }
-        .hero h1 {
-            font-size: 58px;
+        .hero-text {
+            text-align: left;
+        }
+        .hero-text h1 {
+            display: inline;
+            font-size: 20px;
+            margin: 0;
             text-shadow: 0 0 20px rgba(255,150,80,0.9), 0 0 40px rgba(255,150,80,0.5);
+        }
+        .hero-text .author {
+            display: inline;
+            font-size: 12px;
+            margin-left: 8px;
+            opacity: 0.9;
+        }
+        /* 🏙️ 头像（城市） */
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            margin: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            animation: floaty 3s ease-in-out infinite;   /* 🎈 漂浮动画！ */
+            flex-shrink: 0;
+        }
+        /* 🎈 头像上下漂浮 */
+        @keyframes floaty {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-4px); }
+        }
+        /* 🚀 了解更多按钮 */
+        .btn-primary {
+            display: inline-block;
+            margin-top: 0;
+            padding: 6px 14px;
+            background: #fff;
+            color: #e0602f;
+            font-size: 12px;
+            font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+        /* 🎯 技能徽章 */
+        .skills-title {
+            font-size: 22px;
+            margin-top: 26px;
+        }
+        .skills {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 9px 20px;
+            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            color: #fff;
+            border-radius: 22px;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(255, 126, 95, 0.3);
+            transition: all 0.3s;
+            cursor: default;
+        }
+        .badge:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(255, 126, 95, 0.5);
         }
         h2 {
             font-size: 30px;
@@ -592,37 +680,69 @@
         }
         /* 🖼️ 作品集 */
         #works .work-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
-            margin-top: 10px;
+            max-width: 880px;
+            margin: 10px auto 0;
         }
         .work-card {
-            width: 240px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 14px;
             color: #fff;
-            text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
         .work-card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            transform: translateY(-8px) scale(1.02);   /* 🔀 浮起 + 放大 */
+            box-shadow: 0 15px 35px rgba(255, 126, 95, 0.45);   /* 发光！ */
+        }
+        @media (max-width: 640px) {
+            #works .work-grid { grid-template-columns: 1fr; }
         }
         .work-thumb {
             height: 150px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 60px;
             border-radius: 10px;
+            overflow: hidden;
+        }
+        .work-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
         .thumb-rooftop { background: linear-gradient(135deg, #ff7e5f, #feb47b); }
         .thumb-moto { background: linear-gradient(135deg, #0f0c29, #302b63); }
+        .thumb-sdc { background: linear-gradient(135deg, #0f2027, #2c5364); }
         .work-card h3 { margin: 10px 0 4px; font-size: 17px; }
         .work-card p { font-size: 13px; opacity: 0.9; margin: 0; line-height: 1.5; }
+        /* 📡 灯箱（点击卡片全屏查看） */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox-content { padding: 30px; max-width: 540px; }
+        .lightbox-emoji { font-size: 110px; margin-bottom: 6px; }
+        .lightbox-content h3 { font-size: 28px; margin: 10px 0; }
+        .lightbox-content p { font-size: 16px; opacity: 0.9; line-height: 1.8; }
+        .lightbox-close {
+            position: absolute;
+            top: 16px;
+            right: 28px;
+            color: #fff;
+            font-size: 44px;
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        .lightbox-close:hover { opacity: 1; transform: scale(1.15); }
         /* 📮 联系我 */
         #contact form {
             max-width: 420px;
@@ -670,12 +790,25 @@
     </nav>
 
     <div class="hero" id="home">
-        <h1>🏙️ 跑酷者的天台</h1>
-        <p class="author">欢迎来到我的天台 · 让风带你飞！🌇</p>
+        <div class="avatar-circle">🏙️</div>
+        <div class="hero-text">
+            <h1>跑酷者的天台</h1>
+            <p class="author">欢迎来到我的天台 · 让风带你飞！🌇</p>
+        </div>
+        <a href="#about" class="btn-primary" id="hero-btn">🚀 了解更多</a>
     </div>
 
     <h2 id="about">📖 关于我</h2>
     <p class="intro">我是一名城市跑酷爱好者！喜欢在高楼之间穿梭，翻越每一道障碍，在橙红色的夕阳下奔跑。欢迎常来我的天台坐坐！😄</p>
+
+    <h3 class="skills-title">🎯 我的技能</h3>
+    <div class="skills">
+        <span class="badge">🧱 HTML</span>
+        <span class="badge">🎨 CSS</span>
+        <span class="badge">⚡ JavaScript</span>
+        <span class="badge">🏃 跑酷</span>
+        <span class="badge">🎮 游戏制作</span>
+    </div>
 
     <h2 id="skills">🏃 我的跑酷技能</h2>
     <ul>
@@ -745,10 +878,10 @@
     <div id="theme-section">
         <h2>🌍 其他主题</h2>
         <div class="theme-box">
-            <div class="theme-card" id="theme-football">
+            <div class="theme-card" id="theme-taxi">
                 <div class="card-inner">
-                    <div class="card-front">⚽ 足球</div>
-                    <div class="card-back">⚽ 足球主题<br>制作中～</div>
+                    <div class="card-front">搜打撤</div>
+                    <div class="card-back">搜打撤网页<br>点我进入！</div>
                 </div>
             </div>
             <div class="theme-card" id="theme-moto">
@@ -771,17 +904,23 @@
     <!-- 🖼️ 作品集 -->
     <section id="works">
         <h2>🖼️ 我的作品集</h2>
+        <p class="intro">点击卡片全屏查看！</p>
         <div class="work-grid">
-            <a class="work-card" href="index.html">
-                <div class="work-thumb thumb-rooftop">🏙️</div>
+            <div class="work-card" data-emoji="🏙️" data-title="跑酷者的天台" data-href="index.html" data-desc="我的主页：跑酷小游戏、音乐播放器、炫酷视频、表情雨魔法！" onclick="openLightbox(this)">
+                <div class="work-thumb"><img src="shot_home.png" alt="跑酷者的天台"></div>
                 <h3>跑酷者的天台</h3>
-                <p>我的主页：跑酷小游戏、音乐播放器、炫酷视频、表情雨魔法！</p>
-            </a>
-            <a class="work-card" href="moto.html">
-                <div class="work-thumb thumb-moto">🏍️</div>
+                <p>我的主页：跑酷小游戏、音乐、视频、表情雨！</p>
+            </div>
+            <div class="work-card" data-emoji="🏍️" data-title="摩托飞驰" data-href="moto.html" data-desc="摩托车竞速游戏：真90°弯道、头盔/飘移/极速、品牌解锁 + 成就系统！" onclick="openLightbox(this)">
+                <div class="work-thumb"><img src="shot_moto.png" alt="摩托飞驰"></div>
                 <h3>摩托飞驰</h3>
-                <p>摩托车网页：90°弯道竞速、11种品牌解锁、购车 + 成就系统！</p>
-            </a>
+                <p>真90°弯道竞速、飘移、极速、品牌解锁！</p>
+            </div>
+            <div class="work-card" data-emoji="🔥" data-title="搜打撤" data-href="sdc.html" data-desc="搜资源 · 打敌人 · 撤离！双地图、多枪棰+刀、远程敌人、仓库、商店、金钱系统！" onclick="openLightbox(this)">
+                <div class="work-thumb"><img src="shot_sdc.png" alt="搜打撤"></div>
+                <h3>搜打撤</h3>
+                <p>搜资源 · 打敌人 · 撤离！完整生存小游戏！</p>
+            </div>
         </div>
     </section>
 
@@ -801,6 +940,17 @@
     <footer>
         <p>🏙️ 跑酷者的天台 © 2024 · 用 ❤️ 和代码做的网页</p>
     </footer>
+
+    <!-- 📡 灯箱 -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <div class="lightbox-emoji" id="lb-emoji">🏙️</div>
+            <h3 id="lb-title"></h3>
+            <p id="lb-desc"></p>
+            <a id="lb-link" class="magic-btn" href="#" target="_blank">🚀 打开作品</a>
+        </div>
+    </div>
 
     <div id="rain"></div>
 
@@ -1451,16 +1601,16 @@
 
         // 🌍 其他主题卡片：点击看提示！
         var themeStatus = document.getElementById('theme-status');
-        document.getElementById('theme-football').addEventListener('click', function () {
-            themeStatus.textContent = '⚽ 足球主题正在制作中！敬请期待～';
+        document.getElementById('theme-taxi').addEventListener('click', function () {
+            window.location.href = 'sdc.html';   // 🔥 搜打撤：搜资源·打敌人·撤离！
         });
         document.getElementById('theme-moto').addEventListener('click', function () {
             window.location.href = 'moto.html';   // 🏍️ 跳转到摩托车网页！
         });
 
-        // ⚡ 魔法实验区：下一场表情雨！
+        // ⚡ 魔法实验区：下一场表情雨！（做成通用魔法函数！）
         var RAIN_EMOJIS = ['🌈', '⭐', '🎈', '🎉', '✨', '💖', '🍀', '🔥', '🍦', '🚀', '🎊', '😄'];
-        document.getElementById('btn-rain').addEventListener('click', function () {
+        function startEmojiRain() {
             for (var i = 0; i < 45; i++) {
                 var e = document.createElement('div');
                 e.className = 'raindrop';
@@ -1474,7 +1624,11 @@
                     setTimeout(function () { el.remove(); }, 8000);
                 })(e);
             }
-        });
+        }
+        document.getElementById('btn-rain').addEventListener('click', startEmojiRain);
+
+        // 🚀 Hero 按钮：一点击 → 表情雨哗啦啦下起来！
+        document.getElementById('hero-btn').addEventListener('click', startEmojiRain);
 
         // 🕐 实时时钟：每秒更新一次！
         function updateClock() {
@@ -1491,6 +1645,21 @@
             this.reset();
             contactBtn.textContent = '✅ 已收到！谢谢～';
             setTimeout(function () { contactBtn.textContent = '🚀 发送'; }, 2000);
+        });
+
+        // 📡 灯箱：点击卡片全屏查看 + 详情！
+        function openLightbox(card) {
+            document.getElementById('lb-emoji').textContent = card.getAttribute('data-emoji');
+            document.getElementById('lb-title').textContent = card.getAttribute('data-title');
+            document.getElementById('lb-desc').textContent = card.getAttribute('data-desc');
+            document.getElementById('lb-link').href = card.getAttribute('data-href');
+            document.getElementById('lightbox').classList.add('active');
+        }
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeLightbox();
         });
     </script>
 
