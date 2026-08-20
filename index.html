@@ -22,7 +22,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('https://i1.hdslb.com/bfs/archive/1d03e3a8ac01c6485b72602adbcdc58db52d4e06.jpg') center / cover no-repeat;
+            background: url('img/bg_rooftop.jpg') center / cover no-repeat;   /* 🏛️ 本地图片，谁都能看见！ */
             filter: contrast(1.1) saturate(1.08);
             z-index: -1;
         }
@@ -745,24 +745,130 @@
         .lightbox-close:hover { opacity: 1; transform: scale(1.15); }
         /* 📮 联系我 */
         #contact form {
-            max-width: 420px;
+            max-width: 460px;
             margin: 10px auto;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-        #contact input, #contact textarea {
-            padding: 10px 14px;
+        #contact input, #contact select, #contact textarea {
+            width: 100%;
+            padding: 12px 14px;
             border-radius: 12px;
-            border: none;
-            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.12);
             color: #fff;
             font-size: 15px;
             outline: none;
             font-family: inherit;
+            box-sizing: border-box;
         }
+        #contact select option { color: #333; }
         #contact input::placeholder, #contact textarea::placeholder {
             color: rgba(255, 255, 255, 0.6);
+        }
+        #contact input:focus, #contact select:focus, #contact textarea:focus {
+            border-color: #ff8e3c;
+            box-shadow: 0 0 12px rgba(255, 142, 60, 0.45);
+        }
+        #contact form .magic-btn { width: 100%; }
+        .form-error {
+            display: none;
+            color: #ff6b6b;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .form-error.show { display: block; }
+        .form-success {
+            display: none;
+            color: #5bd675;
+            font-size: 17px;
+            font-weight: bold;
+            text-align: center;
+            padding: 12px;
+            background: rgba(91, 214, 117, 0.15);
+            border-radius: 12px;
+        }
+        .form-success.show { display: block; }
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+        .social-link {
+            padding: 10px 24px;
+            background: rgba(255, 142, 60, 0.12);
+            border: 1px solid rgba(255, 142, 60, 0.4);
+            border-radius: 30px;
+            color: #ffb48a;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .social-link:hover {
+            background: rgba(255, 142, 60, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(255, 142, 60, 0.3);
+        }
+        /* 📢 广告 */
+        #ads {
+            margin: 30px auto;
+        }
+        .ad-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+        }
+        .ad-card {
+            width: 260px;
+            border-radius: 14px;
+            padding: 14px;
+            border: 2px dashed rgba(255, 255, 255, 0.35);
+            text-align: left;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .ad-card:hover { transform: translateY(-4px); }
+        .ad-card .ad-tag {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+        .ad-card h3 { margin: 4px 0 6px; font-size: 16px; }
+        .ad-card p { margin: 0; font-size: 12px; opacity: 0.85; }
+        .ad-card .ad-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        .ad-card.ad-1 { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        .ad-card.ad-2 { background: linear-gradient(135deg, #0f3460, #533483); }
+        .ad-card.ad-3 { background: linear-gradient(135deg, #00b09b, #96c93d); }
+        /* 📢 两侧广告（固定在页面两旁） */
+        .side-ad {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 150px;
+            z-index: 50;
+        }
+        .side-ad.left { left: 8px; }
+        .side-ad.right { right: 8px; }
+        .side-ad .ad-card { width: 100%; margin-bottom: 14px; }
+        @media (max-width: 1100px) {
+            .side-ad { display: none; }   /* 屏幕窄就隐藏，不挡内容 */
         }
         /* 🦶 页脚 */
         footer {
@@ -907,17 +1013,17 @@
         <p class="intro">点击卡片全屏查看！</p>
         <div class="work-grid">
             <div class="work-card" data-emoji="🏙️" data-title="跑酷者的天台" data-href="index.html" data-desc="我的主页：跑酷小游戏、音乐播放器、炫酷视频、表情雨魔法！" onclick="openLightbox(this)">
-                <div class="work-thumb"><img src="shot_home.png" alt="跑酷者的天台"></div>
+                <div class="work-thumb"><img src="img/shot_home.png" alt="跑酷者的天台"></div>
                 <h3>跑酷者的天台</h3>
                 <p>我的主页：跑酷小游戏、音乐、视频、表情雨！</p>
             </div>
             <div class="work-card" data-emoji="🏍️" data-title="摩托飞驰" data-href="moto.html" data-desc="摩托车竞速游戏：真90°弯道、头盔/飘移/极速、品牌解锁 + 成就系统！" onclick="openLightbox(this)">
-                <div class="work-thumb"><img src="shot_moto.png" alt="摩托飞驰"></div>
+                <div class="work-thumb"><img src="img/shot_moto.png" alt="摩托飞驰"></div>
                 <h3>摩托飞驰</h3>
                 <p>真90°弯道竞速、飘移、极速、品牌解锁！</p>
             </div>
             <div class="work-card" data-emoji="🔥" data-title="搜打撤" data-href="sdc.html" data-desc="搜资源 · 打敌人 · 撤离！双地图、多枪棰+刀、远程敌人、仓库、商店、金钱系统！" onclick="openLightbox(this)">
-                <div class="work-thumb"><img src="shot_sdc.png" alt="搜打撤"></div>
+                <div class="work-thumb"><img src="img/shot_sdc.png" alt="搜打撤"></div>
                 <h3>搜打撤</h3>
                 <p>搜资源 · 打敌人 · 撤离！完整生存小游戏！</p>
             </div>
@@ -928,12 +1034,26 @@
     <section id="contact">
         <h2>📮 联系我</h2>
         <form id="contact-form">
-            <input type="text" placeholder="✉️ 你的名字" required>
-            <input type="email" placeholder="📧 你的邮箱" required>
-            <input type="text" placeholder="🎵 你喜欢的音乐 / 最近单曲循环">
-            <textarea placeholder="📝 留言内容…" rows="4"></textarea>
+            <input type="text" name="name" placeholder="✉️ 你的名字（必填）" required>
+            <input type="email" name="email" id="contact-email" placeholder="📧 你的邮箱（必填）" required>
+            <select name="topic" id="contact-topic">
+                <option value="">选择主题</option>
+                <option>学习交流</option>
+                <option>合作邀请</option>
+                <option>随便聊聊</option>
+                <option>跑酷切磋</option>
+            </select>
+            <input type="text" name="music" placeholder="🎵 你喜欢的音乐 / 最近单曲循环">
+            <textarea name="message" placeholder="📝 留言内容…" rows="4"></textarea>
             <button type="submit" class="magic-btn">🚀 发送</button>
+            <div id="form-error" class="form-error"></div>
+            <div id="form-success" class="form-success">✅ 已发送！</div>
         </form>
+        <div class="social-links">
+            <a href="mailto:your@email.com" class="social-link">📧 邮箱</a>
+            <a href="#" class="social-link">💬 微信</a>
+            <a href="#" class="social-link">📱 小红书</a>
+        </div>
     </section>
 
     <!-- 🦶 页脚 -->
@@ -949,6 +1069,30 @@
             <h3 id="lb-title"></h3>
             <p id="lb-desc"></p>
             <a id="lb-link" class="magic-btn" href="#" target="_blank">🚀 打开作品</a>
+        </div>
+    </div>
+
+    <!-- 📢 两侧广告 -->
+    <div class="side-ad left">
+        <div class="ad-card ad-1">
+            <span class="ad-tag">广告</span>
+            <h3>🔥 猛男跑酷训练营</h3>
+            <p>三天上天台，七天翻越全城！</p>
+            <a href="#" class="ad-btn">🚀 报名</a>
+        </div>
+        <div class="ad-card ad-2">
+            <span class="ad-tag">广告</span>
+            <h3>🏍️ 摩托特技</h3>
+            <p>真90°弯道竞速！</p>
+            <a href="moto.html" class="ad-btn">▶ 看看</a>
+        </div>
+    </div>
+    <div class="side-ad right">
+        <div class="ad-card ad-3">
+            <span class="ad-tag">广告</span>
+            <h3>🎯 搜打撤大作战</h3>
+            <p>搜资源·打敌人·撤离！</p>
+            <a href="sdc.html" class="ad-btn">🚀 进入</a>
         </div>
     </div>
 
@@ -1642,9 +1786,30 @@
         var contactBtn = document.querySelector('#contact-form button');
         document.getElementById('contact-form').addEventListener('submit', function (e) {
             e.preventDefault();
+            var email = document.getElementById('contact-email').value.trim();
+            var errorEl = document.getElementById('form-error');
+            var successEl = document.getElementById('form-success');
+            // 📧 邮箱必填 + 格式检查
+            if (!email) {
+                errorEl.textContent = '❌ 邮箱是必填的哦～';
+                errorEl.classList.add('show');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errorEl.textContent = '❌ 邮箱格式不对哦～（要带 @ 和 .）';
+                errorEl.classList.add('show');
+                return;
+            }
+            errorEl.classList.remove('show');
+            // ✅ 成功：按钮变已发送 + 绿字提示
+            contactBtn.textContent = '✅ 已发送';
+            successEl.textContent = '🎉 收到啦！我会尽快回复你～';
+            successEl.classList.add('show');
             this.reset();
-            contactBtn.textContent = '✅ 已收到！谢谢～';
-            setTimeout(function () { contactBtn.textContent = '🚀 发送'; }, 2000);
+            setTimeout(function () {
+                contactBtn.textContent = '🚀 发送';
+                successEl.classList.remove('show');
+            }, 3000);
         });
 
         // 📡 灯箱：点击卡片全屏查看 + 详情！

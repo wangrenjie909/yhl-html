@@ -257,6 +257,8 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:6px">
         <button class="tbtn" data-k=" ">🔫</button>
+        <button class="tbtn" data-k="shift">⬆️</button>
+        <button class="tbtn" data-k="x">📦</button>
         <button class="tbtn" id="btn-switch">🔁</button>
         <button class="tbtn" id="btn-pickup">✋</button>
         <button class="tbtn" id="btn-map">🗺️</button>
@@ -288,7 +290,7 @@
     var DW = 64;                      // 门宽
     var MAPS = {
         city: {
-            name: '城市地图',
+            name: '怪物小镇',
             W: 2600, H: 1800,
             ground: '#14171d', wall: '#39414f', floor: '#232936',
             extract: { x: 2300, y: 1620, r: 95 },
@@ -310,7 +312,7 @@
             ]
         },
         desert: {
-            name: '沙漠地图',
+            name: '沙漠基地',
             W: 3400, H: 2400,
             ground: '#1d1810', wall: '#4c4030', floor: '#2e2618',
             extract: { x: 3050, y: 2150, r: 100 },
@@ -400,6 +402,35 @@
     }
 
     // 👁 视线检测：两点之间有没有被墙挡住
+    // 👾 敌人表情：沙漠地图 = 武装士兵！
+    function enemyEmoji(e) {
+        if (currentMap === MAPS.desert) {
+            return e.ranged ? '💂' : '🪖';   // 士兵
+        }
+        return e.ranged ? '🤖' : '👾';
+    }
+    // 📦 “屋顶遮蔽”：房子里的箱子看不见，只有 2 楼楼顶的箱子看得见！
+    function crateHidden(c) {
+        if (c.roof) return false;   // 2楼楼顶的箱子看得见
+        for (var i = 0; i < buildings.length; i++) {
+            var b = buildings[i];
+            if (c.x > b.x && c.x < b.x + b.w && c.y > b.y && c.y < b.y + b.h) {
+                return player.inB !== i;   // 屋里的箱子：只有你在同一栋楼才看得见
+            }
+        }
+        return false;   // 露天箱子看得见
+    }
+    // 🏢 “屋顶遮蔽”：在房子里的怪（一楼）被屋顶遮住看不见，除非你也在这栋房子里
+    function enemyHidden(e) {
+        if (e.floor === 2) return false;   // 楼顶的怪看得见！
+        for (var i = 0; i < buildings.length; i++) {
+            var b = buildings[i];
+            if (e.x > b.x && e.x < b.x + b.w && e.y > b.y && e.y < b.y + b.h) {
+                return player.inB !== i;   // 玩家不在同一栋——看不见！
+            }
+        }
+        return false;   // 露天的怪看得见
+    }
     function hasLOS(x1, y1, x2, y2) {
         var dx = x2 - x1, dy = y2 - y1;
         var dist = Math.sqrt(dx * dx + dy * dy);
@@ -411,13 +442,22 @@
         return true;
     }
 
-    var player = { x: 200, y: 200, hp: 100, dir: 0, atkCd: 0, hitCd: 0, bullets: 30, weapons: ['pistol', null], weaponSlot: 0, floor: 1, bIdx: -1, tIdx: -1 };
+    var player = { x: 200, y: 200, hp: 100, dir: 0, atkCd: 0, hitCd: 0, bullets: 30, weapons: ['pistol', null], weaponSlot: 0, floor: 1, bIdx: -1, tIdx: -1, inB: -1 };
     var maxHp = 100;   // 最大血量（用药、医疗包可以加）
     var floorCd = 0;    // 楼梯切换冷却
+    var laserActive = false, laserTimer = 0, laserLen = 0;   // 激光枪
+    var laserPierce = 0;                                       // 🔡 破甲时间（激光能打 BOSS 的剩余秒）
+    var prevShift = false, prevX = false, nearCrateIdx = -1, stairPrompt = '';  // Shift/X 边沿 + 提示
+    var rpgAmmo = 0;   // 🚀 RPG 专属火箭弹（要找到才能用）
+    var imgTank = new Image(); imgTank.src = 'img/tank.png';       // 🚜 真实坦克
+    var imgSoldier = new Image(); imgSoldier.src = 'img/soldier.png';  // 🪖 真实士兵
+    function imgOk(img) { return img.complete && img.naturalWidth > 0; }
+    var heat = 0;                                            // 加特林热度
     var crates = [], enemies = [], bullets = [], drops = [], fx = [], enemyShots = [];
     var towers = [];          // 高型场沙锅塔（直接上3楼）
     var boss = null;          // 👹 BOSS！
     var arena = null;         // 👹 BOSS 专属场地
+    var bossChest = null;     // 🎁 打完 BOSS 的宝箱
     var score = 0, cratesOpened = 0, kills = 0;
     var state = 'start';
     var extractT = 0;
@@ -427,13 +467,14 @@
 
     // 💰 金钱 & 装备 & 下一局武器装备（跨局保存）
     var money = 0;
-    var gear = { hpBonus: 0, bulletsBonus: 0, armor: false };
+    var gear = { hpBonus: 0, bulletsBonus: 0, armor: false, rpgBonus: 0 };
     var loadout = ['pistol', null];
+    var loadoutSrc = [-1, -1];   // 每把出战枪来自仓库哪一格（避免同款枪全显示已装备）
     try { money = parseInt(localStorage.getItem('sdcMoney') || '0', 10) || 0; } catch (e) {}
     try { gear = JSON.parse(localStorage.getItem('sdcGear') || 'null') || { hpBonus: 0, bulletsBonus: 0, armor: false }; } catch (e) {}
     function saveMoney() { try { localStorage.setItem('sdcMoney', money); } catch (e) {} }
     function saveGear() { try { localStorage.setItem('sdcGear', JSON.stringify(gear)); } catch (e) {} }
-    var WEAPON_PRICES = { rifle: 100, shotgun: 150, sniper: 200, smg: 120, gatling: 300, laser: 180, knife: 80 };
+    var WEAPON_PRICES = { rifle: 100, shotgun: 150, sniper: 200, smg: 120, gatling: 300, laser: 180, knife: 80, rpg: 250 };
 
     // 🏠 仓库：24格背包，每格放一件（枪/甲/头/药/甲修）
     var INV_SIZE = 80;   // 🎒 超级大背包！8列 x 10行！
@@ -470,8 +511,9 @@
         shotgun: { name: '霰弹枪', emoji: '💥', dmg: 15, rate: 0.65, speed: 640,  pellets: 6, spread: 0.30 },
         sniper:  { name: '狙击枪', emoji: '🎯', dmg: 95, rate: 0.85, speed: 1150, pellets: 1, spread: 0 },
         smg:     { name: '冲锋枪', emoji: '🚀', dmg: 18, rate: 0.07, speed: 780,  pellets: 1, spread: 0.07 },
-        gatling: { name: '加特林', emoji: '⚙️', dmg: 12, rate: 0.045, speed: 760, pellets: 1, spread: 0.13 },
-        laser:   { name: '激光枪', emoji: '✨', dmg: 42, rate: 0.16, speed: 1050, pellets: 1, spread: 0 },
+        gatling: { name: '加特林', emoji: '⚙️', dmg: 12, rate: 0.045, speed: 760, pellets: 1, spread: 0.13, overheat: true },
+        laser:   { name: '激光枪', emoji: '✨', dmg: 42, rate: 0.16, speed: 1050, pellets: 1, spread: 0, laser: true },
+        rpg:     { name: 'RPG', emoji: '🚀', dmg: 100, rate: 1.0, speed: 520, pellets: 1, spread: 0, rpg: true },
         knife:     { name: '小刀',   emoji: '🔪', dmg: 999, rate: 0.4, melee: true },
         freeknife: { name: '免费刀', emoji: '🗡️', dmg: 50,  rate: 0.4, melee: true }
     };
@@ -479,7 +521,7 @@
         return player.weapons[player.weaponSlot] || 'pistol';
     }
     function randomWeapon() {
-        var ks = ['rifle', 'shotgun', 'sniper', 'smg', 'gatling', 'laser', 'knife'];
+        var ks = ['rifle', 'shotgun', 'sniper', 'smg', 'gatling', 'laser', 'knife', 'rpg'];
         return ks[Math.floor(Math.random() * ks.length)];
     }
     function dropWeaponPickup(x, y) {
@@ -491,10 +533,32 @@
         drops.push({ x: e.x, y: e.y });
         var dropGun = Math.random() < 0.25;
         if (dropGun) dropWeaponPickup(e.x + 14, e.y + 14);
+        if (Math.random() < 0.12) drops.push({ x: e.x + 8, y: e.y - 8, kind: 'pierce' });   // 🔡 可能掉破甲
+        if (Math.random() < 0.08) drops.push({ x: e.x - 8, y: e.y + 8, kind: 'rocket' });   // 🚀 可能掉火箭弹
         score += 20; kills++;
         showMsg(dropGun ? '👾 击杀！掉落 ⚡ 子弹 和 🔫 枪械！' : '👾 击杀！+20分，掉落 ⚡ 子弹');
         enemies.splice(idx, 1);
     }
+    // 🚀 RPG 爆炸：范围伤害 100！
+    function explode(x, y) {
+        fx.push({ x: x, y: y, r: 8, t: 0, boom: 1 });
+        for (var i = enemies.length - 1; i >= 0; i--) {
+            var e = enemies[i];
+            var d = Math.sqrt((e.x - x) * (e.x - x) + (e.y - y) * (e.y - y));
+            if (d < 95) {
+                e.hp -= 100;
+                if (e.hp <= 0) killEnemy(i);
+            }
+        }
+        if (boss && boss.hp > 0) {
+            var bd = Math.sqrt((boss.x - x) * (boss.x - x) + (boss.y - y) * (boss.y - y));
+            if (bd < 95) {
+                boss.hp -= 100;
+                if (boss.hp <= 0) killBoss();
+            }
+        }
+    }
+
     // 👹 击败 BOSS：大奖励！
     function killBoss() {
         if (!boss) return;
@@ -503,6 +567,7 @@
         drops.push({ x: boss.x - 22, y: boss.y + 10 });
         score += 200; kills++;
         showMsg('👹 击败 BOSS！+200分，爆出 2 把枪和子弹！🔓 大门开了！');
+        bossChest = { x: boss.x, y: boss.y, t: 0 };   // 🎁 掉下宝箱！
         boss = null;
         if (arena) arena.locked = false;   // 🔓 打败才开门！
         document.getElementById('bossbar-wrap').style.display = 'none';
@@ -555,7 +620,7 @@
             // 🏢 2楼可能刷宝箱（35%概率）！
             if (buildings[i].has2 && Math.random() < 0.35) {
                 var b2 = buildings[i];
-                crates.push({ x: b2.x + T + 24 + Math.random() * (b2.w - 2 * T - 48), y: b2.y + T + 36 });
+                crates.push({ x: b2.x + T + 24 + Math.random() * (b2.w - 2 * T - 48), y: b2.y + T + 36, roof: true });
             }
         }
         for (var i = 0; i < 16; i++) {
@@ -596,10 +661,15 @@
         player.x = 200; player.y = 200;
         player.floor = 1; player.bIdx = -1; player.tIdx = -1; floorCd = 0;
         boss = null;
+        bossChest = null;
         maxHp = 100 + gear.hpBonus + runMeds * 20;   // 用药/医疗包加最大血
         player.hp = maxHp;
         player.bullets = 30 + gear.bulletsBonus;
         player.weapons = loadout.slice(); player.weaponSlot = 0;
+        rpgAmmo = gear.rpgBonus || 0;   // 🚀 开局火箭弹（商店买的）
+        // 如果出战装备被清空，同步清除源格记录
+        if (!loadout[0] || loadout[0] === 'pistol') loadoutSrc[0] = -1;
+        if (!loadout[1]) loadoutSrc[1] = -1;
         score = 0; cratesOpened = 0; kills = 0; extractT = 0;
         setupMap();
         mapOpen = false;
@@ -717,11 +787,21 @@
             drops.push({ x: c.x, y: c.y, kind: 'weapon', w: w });
             fx.push({ x: c.x, y: c.y, t: 0, text: '🎁 爆出 ' + WEAPONS[w].name + '！' });
             showMsg('📦 爆出枪械：' + WEAPONS[w].name + '！按 E 拾取');
-        } else if (r < 0.40) {
+        } else if (r < 0.41) {
+            // 🔡 破甲道具！
+            drops.push({ x: c.x, y: c.y, kind: 'pierce' });
+            fx.push({ x: c.x, y: c.y, t: 0, text: '🔡 破甲道具！' });
+            showMsg('📦 爆出破甲道具！🔡 激光能打 BOSS 了！');
+        } else if (r < 0.49) {
+            // 🚀 火箭弹！
+            drops.push({ x: c.x, y: c.y, kind: 'rocket' });
+            fx.push({ x: c.x, y: c.y, t: 0, text: '🚀 火箭弹 x3' });
+            showMsg('📦 爆出火箭弹！🚀 RPG 专属子弹');
+        } else if (r < 0.55) {
             score += 50;
             fx.push({ x: c.x, y: c.y, t: 0, text: '💰 大金块 +50' });
             showMsg('📦 爆出大金块！💰 +50分');
-        } else if (r < 0.75) {
+        } else if (r < 0.85) {
             score += 5;
             fx.push({ x: c.x, y: c.y, t: 0, text: '🍪 饼干 +5' });
             showMsg('📦 普通物品：饼干 🍪 +5分');
@@ -782,9 +862,55 @@
             }
         }
 
-        // 🪜 楼梯：部分房子上2楼，锅塔直接上3楼！
+        // 🏢 玩家现在哪栋楼里？（一楼时计算）
+        player.inB = -1;
+        if (player.floor === 1) {
+            for (var bi2 = 0; bi2 < buildings.length; bi2++) {
+                var bb2 = buildings[bi2];
+                if (player.x > bb2.x + T && player.x < bb2.x + bb2.w - T && player.y > bb2.y + T && player.y < bb2.y + bb2.h - T) {
+                    player.inB = bi2;
+                    break;
+                }
+            }
+        }
+
+        // 🪜 楼梯：部分房子上2楼，锅塔直接上3楼（按 Shift 上/下楼）
+        stairPrompt = '';
+        var shiftDown = !!keys['shift'];
+        var shiftPressed = shiftDown && !prevShift;
+        var xDown = !!keys['x'];
+        var xPressed = xDown && !prevX;
+        // 检测是否站在楼梯旁，提示按 Shift
+        if (player.floor === 1) {
+            for (var si = 0; si < buildings.length; si++) {
+                var sb = buildings[si];
+                if (sb.has2 && Math.abs(player.x - (sb.x + T + 24)) < 26 && Math.abs(player.y - (sb.y + T + 24)) < 26) {
+                    stairPrompt = '⬆️ 按 Shift 上 2 楼';
+                    break;
+                }
+            }
+            if (!stairPrompt) {
+                for (var ti = 0; ti < towers.length; ti++) {
+                    var tw = towers[ti];
+                    if (Math.abs(player.x - (tw.x + tw.w / 2)) < 30 && Math.abs(player.y - (tw.y + tw.h + 24)) < 30) {
+                        stairPrompt = '⛰️ 按 Shift 上锅塔 3 楼';
+                        break;
+                    }
+                }
+            }
+        } else if (player.floor === 2 && player.bIdx >= 0) {
+            var cb = buildings[player.bIdx];
+            if (Math.abs(player.x - (cb.x + T + 24)) < 26 && Math.abs(player.y - (cb.y + T + 24)) < 26) {
+                stairPrompt = '⬇️ 按 Shift 下到 1 楼';
+            }
+        } else if (player.floor === 3 && player.tIdx >= 0) {
+            var ctw = towers[player.tIdx];
+            if (Math.abs(player.x - (ctw.x + ctw.w / 2)) < 30 && Math.abs(player.y - (ctw.y + 10)) < 30) {
+                stairPrompt = '⬇️ 按 Shift 下塔';
+            }
+        }
         if (floorCd > 0) floorCd -= dt;
-        if (floorCd <= 0) {
+        if (floorCd <= 0 && shiftPressed) {
             if (player.floor === 1) {
                 // 🏢 房子只有有楼梯的才能上2楼！
                 for (var si = 0; si < buildings.length; si++) {
@@ -832,22 +958,71 @@
             }
         }
 
-        // 📦 开箱（踩到自动开）
+        // 📦 开箱（按 X 开！）
+        nearCrateIdx = -1;
         for (var i = crates.length - 1; i >= 0; i--) {
             var c = crates[i];
+            if (crateHidden(c)) continue;
             var d = Math.sqrt((c.x - player.x) * (c.x - player.x) + (c.y - player.y) * (c.y - player.y));
-            if (d < 36) { openCrate(c); crates.splice(i, 1); }
+            if (d < 42) { nearCrateIdx = i; break; }
         }
+        if (xPressed && nearCrateIdx >= 0) {
+            openCrate(crates[nearCrateIdx]);
+            crates.splice(nearCrateIdx, 1);
+            nearCrateIdx = -1;
+        }
+        prevShift = shiftDown;
+        prevX = xDown;
 
         // 🔫 射击（鼠标左键 / 空格 / J）——按当前枪械发射！
         var wg = WEAPONS[currentWeapon()];
-        if ((keys[' '] || keys['j'] || mouseDown) && player.atkCd <= 0) {
-            if (wg.melee) {
+        var firing = (keys[' '] || keys['j'] || mouseDown) && player.atkCd <= 0;
+        if (wg.laser) {
+            // ✨ 激光枪：每 0.5 秒耗 2 颗子弹，发射一条线，敌人碰线即扣血！
+            if (firing) {
+                laserActive = true;
+                laserTimer += dt;
+                if (laserTimer >= 0.35) {   // ✨ 更快！每 0.35 秒耗 2 颗子弹
+                    if (player.bullets >= 2) {
+                        player.bullets -= 2;
+                        laserTimer -= 0.35;
+                    } else {
+                        laserActive = false;
+                        laserTimer = 0;
+                        showMsg('咔咔…没子弹了！去开箱子或打敌人 🔫');
+                    }
+                }
+            } else {
+                laserActive = false;
+                laserTimer = 0;
+            }
+        } else if (wg.rpg) {
+            // 🚀 RPG：专属火箭弹，爆炸范围伤害，100 伤害秒小怪（BOSS 不能秒）！
+            if (firing) {
+                if (rpgAmmo > 0) {
+                    player.atkCd = wg.rate;
+                    rpgAmmo--;
+                    bullets.push({
+                        x: player.x, y: player.y,
+                        vx: Math.cos(player.dir) * wg.speed,
+                        vy: Math.sin(player.dir) * wg.speed,
+                        life: 1.2,
+                        dmg: wg.dmg,
+                        rocket: true
+                    });
+                    fx.push({ x: player.x + Math.cos(player.dir) * 20, y: player.y + Math.sin(player.dir) * 20, r: 8, t: 0 });
+                } else {
+                    player.atkCd = 0.5;
+                    showMsg('🚀 没有火箭弹了！去找 🚀 弹药！');
+                }
+            }
+        } else if (wg.melee) {
                 // 🔪 刀：近战挥砍，面前敌人一刀秒杀！（不耗子弹）
                 player.atkCd = wg.rate;
                 fx.push({ x: player.x + Math.cos(player.dir) * 45, y: player.y + Math.sin(player.dir) * 45, t: 0, slash: player.dir });
                 for (var mi = enemies.length - 1; mi >= 0; mi--) {
                     var me = enemies[mi];
+                    if (enemyHidden(me)) continue;   // 🏢 屋顶遮住的怪砍不到
                     var md2 = Math.sqrt((me.x - player.x) * (me.x - player.x) + (me.y - player.y) * (me.y - player.y));
                     var angTo = Math.atan2(me.y - player.y, me.x - player.x);
                     var diff = Math.abs(angTo - player.dir);
@@ -871,23 +1046,77 @@
                     }
                 }
             } else if (player.bullets > 0) {
-                player.atkCd = wg.rate;
-                player.bullets--;
-                for (var pi = 0; pi < wg.pellets; pi++) {
-                    var pang = player.dir + (Math.random() - 0.5) * 2 * wg.spread;
-                    bullets.push({
-                        x: player.x,   // 子弹从身体中心发射：贴脸也能打中！
-                        y: player.y,
-                        vx: Math.cos(pang) * wg.speed,
-                        vy: Math.sin(pang) * wg.speed,
-                        life: 1.2,
-                        dmg: wg.dmg
-                    });
+                if (wg.overheat && heat >= 100) {
+                    // ⚙️ 加特林过热！无法射击，等待冷却
+                    heat -= 45 * dt;
+                    if (heat <= 0) heat = 0;
+                    if (player.atkCd <= 0) { showMsg('🔥 加特林过热！冷却中…'); player.atkCd = 1.2; }
+                } else if (firing) {
+                    player.atkCd = wg.rate;
+                    player.bullets--;
+                    for (var pi = 0; pi < wg.pellets; pi++) {
+                        var pang = player.dir + (Math.random() - 0.5) * 2 * wg.spread;
+                        bullets.push({
+                            x: player.x,   // 子弹从身体中心发射：贴脸也能打中！
+                            y: player.y,
+                            vx: Math.cos(pang) * wg.speed,
+                            vy: Math.sin(pang) * wg.speed,
+                            life: 1.2,
+                            dmg: wg.dmg
+                        });
+                    }
+                    fx.push({ x: player.x + Math.cos(player.dir) * 20, y: player.y + Math.sin(player.dir) * 20, r: 8, t: 0 });
+                    if (wg.overheat) heat += 32 * dt;   // ⚙️ 持续射击会过热！
+                } else {
+                    if (wg.overheat) { heat -= 35 * dt; if (heat < 0) heat = 0; }
                 }
-                fx.push({ x: player.x + Math.cos(player.dir) * 20, y: player.y + Math.sin(player.dir) * 20, r: 8, t: 0 });
             } else {
                 player.atkCd = 0.4;
                 showMsg('咔咔…没子弹了！去开箱子或打敌人 🔫');
+            }
+
+        // ✨ 激光线：画线 + 敌人碰线即扣血
+        laserLen = 0;
+        if (laserActive) {
+            laserLen = 900;
+            for (var li = 20; li <= 900; li += 8) {
+                var lx = player.x + Math.cos(player.dir) * li;
+                var ly = player.y + Math.sin(player.dir) * li;
+                if (bulletWallHit(lx, ly)) { laserLen = li; break; }
+            }
+            for (var ej = enemies.length - 1; ej >= 0; ej--) {
+                var en = enemies[ej];
+                if (enemyHidden(en)) continue;
+                var ex = en.x - player.x, ey = en.y - player.y;
+                var along = ex * Math.cos(player.dir) + ey * Math.sin(player.dir);
+                if (along < 4 || along > laserLen) continue;
+                var perp = Math.abs(-ex * Math.sin(player.dir) + ey * Math.cos(player.dir));
+                if (perp < 26) {
+                    en.hp -= wg.dmg * dt * 2.2;   // ✨ 碰到线就扣血（伤害更高）！
+                    if (Math.random() < 0.3) fx.push({ x: en.x, y: en.y, r: 4, t: 0 });
+                    if (en.hp <= 0) killEnemy(ej);
+                }
+            }
+            // 🔡 破甲时：激光也能打 BOSS！
+            if (laserPierce > 0 && boss && boss.hp > 0) {
+                var bdx = boss.x - player.x, bdy = boss.y - player.y;
+                var balong = bdx * Math.cos(player.dir) + bdy * Math.sin(player.dir);
+                if (balong > 4 && balong < laserLen) {
+                    var bperp = Math.abs(-bdx * Math.sin(player.dir) + bdy * Math.cos(player.dir));
+                    if (bperp < 30) {
+                        boss.hp -= wg.dmg * dt * 1.0;
+                        if (Math.random() < 0.3) fx.push({ x: boss.x, y: boss.y, r: 4, t: 0 });
+                        if (boss.hp <= 0) killBoss();
+                    }
+                }
+            }
+        }
+        // 🔡 破甲倒计时
+        if (laserPierce > 0) {
+            laserPierce -= dt;
+            if (laserPierce <= 0) {
+                laserPierce = 0;
+                showMsg('🔡 破甲效果结束！激光打不了 BOSS 了');
             }
         }
 
@@ -900,10 +1129,18 @@
             var hitEnemy = -1;
             for (var j = 0; j < enemies.length; j++) {
                 var e = enemies[j];
+                if (enemyHidden(e)) continue;   // 🏢 屋顶遮住的怪打不到！
                 var d = Math.sqrt((e.x - b.x) * (e.x - b.x) + (e.y - b.y) * (e.y - b.y));
                 if (d < 48) { hitEnemy = j; break; }
             }
-            if (b.life <= 0 || hitWall) {
+            if (b.rocket) {
+                // 🚀 火箭弹：碰到墙/敌人/BOSS 就爆炸！
+                var hitB = boss && boss.hp > 0 && Math.sqrt((boss.x - b.x) * (boss.x - b.x) + (boss.y - b.y) * (boss.y - b.y)) < 44;
+                if (b.life <= 0 || hitWall || hitEnemy >= 0 || hitB) {
+                    explode(b.x, b.y);
+                    bullets.splice(i, 1);
+                }
+            } else if (b.life <= 0 || hitWall) {
                 bullets.splice(i, 1);
             } else {
                 // BOSS 和 小怪分开判断：BOSS 活着也能打小怪！
@@ -938,11 +1175,10 @@
                 if (sb.has2) {
                     var scx = sb.x + sb.w / 2, scy = sb.y + sb.h / 2;
                     var sdd = Math.sqrt((scx - e.x) * (scx - e.x) + (scy - e.y) * (scy - e.y));
-                    if (sdd < 400 && sdd > 0.01) {
+                    if (sdd < 260 && sdd > 0.01) {
                         // 已经靠近房子：直接爬上 2 楼！
                         e.floor = 2; e.bIdx = player.bIdx;
-                        e.x = sb.x + sb.w / 2 + (Math.random() - 0.5) * 60;
-                        e.y = sb.y + T + 40 + Math.random() * 40;
+                        e.x = sb.x + T + 24; e.y = sb.y + T + 30;   // 🪜 从楼梯口爬上来！
                     } else {
                         mx = (scx - e.x) / sdd * es;
                         my = (scy - e.y) / sdd * es;
@@ -1093,6 +1329,28 @@
             document.getElementById('bossbar-wrap').style.display = 'none';
         }
 
+        // 🎁 打完 BOSS 的宝箱：站旁边等 2.5 秒自动开！
+        if (bossChest) {
+            var bcd = Math.sqrt((bossChest.x - player.x) * (bossChest.x - player.x) + (bossChest.y - player.y) * (bossChest.y - player.y));
+            if (bcd < 60) {
+                bossChest.t += dt;
+                if (bossChest.t >= 2.5) {
+                    // 🎉 开宝箱！大丰收！
+                    player.bullets += 150;
+                    rpgAmmo += 6;
+                    score += 250;
+                    dropWeaponPickup(bossChest.x + 22, bossChest.y);
+                    dropWeaponPickup(bossChest.x - 22, bossChest.y + 22);
+                    drops.push({ x: bossChest.x, y: bossChest.y - 22 });
+                    showMsg('🎁 宝箱开启！+150 子弹 · +250 分（金条） · 爆出 2 把枪！');
+                    fx.push({ x: bossChest.x, y: bossChest.y, r: 10, t: 0, text: '🎁 大丰收！' });
+                    bossChest = null;
+                }
+            } else {
+                bossChest.t = 0;   // 走开就重新开始
+            }
+        }
+
         // 🧨 敌人的子弹！（同一层才能打中你）
         for (var i = enemyShots.length - 1; i >= 0; i--) {
             var sh = enemyShots[i];
@@ -1122,14 +1380,24 @@
             }
         }
 
-        // ⚡ 捡子弹（枪要按 E 手动拾取）
+        // ⚡ 捡子弹 / 🔡 捡破甲（枪要按 E 手动拾取）
         for (var i = drops.length - 1; i >= 0; i--) {
             var dp = drops[i];
             var d = Math.sqrt((dp.x - player.x) * (dp.x - player.x) + (dp.y - player.y) * (dp.y - player.y));
             if (d < 34 && dp.kind !== 'weapon') {
-                player.bullets += 10;
-                fx.push({ x: dp.x, y: dp.y, t: 0, text: '⚡ +10 子弹' });
-                showMsg('⚡ 捡到子弹 x10！');
+                if (dp.kind === 'pierce') {
+                    laserPierce = 8;
+                    fx.push({ x: dp.x, y: dp.y, t: 0, text: '🔡 破甲！' });
+                    showMsg('🔡 破甲！激光能打 BOSS 8 秒！');
+                } else if (dp.kind === 'rocket') {
+                    rpgAmmo += 3;
+                    fx.push({ x: dp.x, y: dp.y, t: 0, text: '🚀 火箭弹 x3' });
+                    showMsg('🚀 拾到火箭弹 x3！');
+                } else {
+                    player.bullets += 10;
+                    fx.push({ x: dp.x, y: dp.y, t: 0, text: '⚡ +10 子弹' });
+                    showMsg('⚡ 捡到子弹 x10！');
+                }
                 drops.splice(i, 1);
             }
         }
@@ -1152,7 +1420,7 @@
         var slotTxt = player.weapons[0] ? WEAPONS[player.weapons[0]].name : '空';
         var slotTxt2 = player.weapons[1] ? WEAPONS[player.weapons[1]].name : '空';
         document.getElementById('bullets').textContent =
-            WEAPONS[cw].name + ' ' + (WEAPONS[cw].melee ? '∞' : player.bullets) + '  [1.' + slotTxt + ' | 2.' + slotTxt2 + ']';
+            WEAPONS[cw].name + ' ' + (WEAPONS[cw].melee ? '∞' : (WEAPONS[cw].rpg ? rpgAmmo : player.bullets)) + '  [1.' + slotTxt + ' | 2.' + slotTxt2 + ']';
         document.getElementById('score').textContent = score;
         document.getElementById('crates').textContent = crates.length;
         document.getElementById('ene').textContent = enemies.length;
@@ -1173,23 +1441,41 @@
         for (var gx = 0; gx <= MAPW; gx += 100) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, MAPH); ctx.stroke(); }
         for (var gy = 0; gy <= MAPH; gy += 100) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(MAPW, gy); ctx.stroke(); }
 
-        // 🏠 房间
+        // 🏢 房间（在外面只看到屋顶，进到里面才看到一楼）
         for (var i = 0; i < buildings.length; i++) {
             var b = buildings[i];
-            ctx.fillStyle = currentMap.wall;
-            ctx.fillRect(b.x, b.y, b.w, b.h);
-            ctx.fillStyle = currentMap.floor;
-            ctx.fillRect(b.x + T, b.y + T, b.w - 2 * T, b.h - 2 * T);
-            // 门（底部缺口）
-            ctx.fillStyle = currentMap.floor;
-            ctx.fillRect(b.x + (b.w - DW) / 2, b.y + b.h - T, DW, T);
-            ctx.strokeStyle = '#5a6675';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(b.x + (b.w - DW) / 2, b.y + b.h - T, DW, T);
-            ctx.fillStyle = 'rgba(255,255,255,0.35)';
-            ctx.font = '13px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('房', b.x + b.w / 2, b.y + T + 16);
+            var showInside = (player.floor === 1 && player.inB === i) || (player.floor === 2 && player.bIdx === i);
+            if (showInside) {
+                // 你在这栋楼里面/楼上：画内部
+                ctx.fillStyle = currentMap.wall;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+                ctx.fillStyle = currentMap.floor;
+                ctx.fillRect(b.x + T, b.y + T, b.w - 2 * T, b.h - 2 * T);
+                // 门（底部缺口）
+                ctx.fillStyle = currentMap.floor;
+                ctx.fillRect(b.x + (b.w - DW) / 2, b.y + b.h - T, DW, T);
+                ctx.strokeStyle = '#5a6675';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(b.x + (b.w - DW) / 2, b.y + b.h - T, DW, T);
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.font = '13px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('房', b.x + b.w / 2, b.y + T + 16);
+            } else {
+                // 🏢 在外面看：只看到封闭屋顶（看不到里面）
+                ctx.fillStyle = 'rgba(96, 82, 62, 0.95)';
+                ctx.fillRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                ctx.strokeStyle = '#8a7a55';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                // 门口缺口（能看出门在哪）
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(b.x + (b.w - DW) / 2, b.y + b.h - 5, DW, 9);
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = 'bold 13px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('房', b.x + b.w / 2, b.y + b.h / 2 + 4);
+            }
             // 🪜 楼梯标记（只有有2楼的房子才有！）
             if (b.has2) {
                 ctx.font = '16px sans-serif';
@@ -1263,11 +1549,32 @@
             ctx.fillText('🪜', tw.x + tw.w / 2, tw.y + tw.h + 34);
         }
 
-        // 📦 箱子
+        // 📦 箱子（屋里的不画，2楼楼顶的画）
         ctx.font = '26px sans-serif';
         ctx.textAlign = 'center';
         for (var i = 0; i < crates.length; i++) {
+            if (crateHidden(crates[i])) continue;
             ctx.fillText('📦', crates[i].x, crates[i].y + 9);
+        }
+        if (nearCrateIdx >= 0 && crates[nearCrateIdx]) {
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('按 X 开箱', crates[nearCrateIdx].x, crates[nearCrateIdx].y - 16);
+        }
+
+        // 🎁 BOSS 宝箱（金色，开箱要等时间）
+        if (bossChest) {
+            ctx.font = '46px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🎁', bossChest.x, bossChest.y + 14);
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(bossChest.x - 34, bossChest.y - 36, 68, 8);
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillRect(bossChest.x - 34, bossChest.y - 36, 68 * Math.min(1, bossChest.t / 2.5), 8);
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillText('站旁边等 2.5 秒开箱', bossChest.x, bossChest.y - 42);
         }
 
         // ✋ 附近有枪：提示按 E 拾取
@@ -1295,6 +1602,18 @@
                 ctx.fillStyle = '#ffd93d';
                 ctx.fillText(WEAPONS[dp.w].name, dp.x, dp.y + 26);
                 ctx.font = '22px sans-serif';
+            } else if (dp.kind === 'pierce') {
+                ctx.fillText('🔡', dp.x, dp.y + 8);
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillStyle = '#9ad6ff';
+                ctx.fillText('破甲', dp.x, dp.y + 26);
+                ctx.font = '22px sans-serif';
+            } else if (dp.kind === 'rocket') {
+                ctx.fillText('🚀', dp.x, dp.y + 8);
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillStyle = '#ff9ad6';
+                ctx.fillText('RPG弹', dp.x, dp.y + 26);
+                ctx.font = '22px sans-serif';
             } else {
                 ctx.fillText('⚡', dp.x, dp.y + 8);
             }
@@ -1304,7 +1623,32 @@
         ctx.font = '64px sans-serif';
         for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
-            ctx.fillText(e.ranged ? '🤖' : '👾', e.x, e.y + 18);
+            if (enemyHidden(e)) continue;   // 🏢 屋顶遮住的怪不画！
+            if (player.floor === 2 && e.floor === 2 && e.bIdx === player.bIdx) continue;   // 楼顶的怪稍后重绘
+            if (currentMap === MAPS.desert && imgOk(imgSoldier)) {
+                // 🪖 武装士兵（真实图）：身体跟着玩家转，武器也跟着转！
+                var ea = Math.atan2(player.y - e.y, player.x - e.x);
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                ctx.rotate(ea + Math.PI / 2);
+                ctx.drawImage(imgSoldier, -23, -30, 46, 60);
+                if (e.ranged) {
+                    // 🔫 手枪（跟着转！）
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(-3, -16, 6, 12);
+                    ctx.fillStyle = '#777';
+                    ctx.fillRect(-4, -22, 8, 6);
+                } else {
+                    // 🔪 大刀
+                    ctx.fillStyle = '#e8e8e8';
+                    ctx.fillRect(-2, -30, 5, 22);
+                    ctx.fillStyle = '#8a5a2b';
+                    ctx.fillRect(-4, -10, 8, 8);
+                }
+                ctx.restore();
+            } else {
+                ctx.fillText(enemyEmoji(e), e.x, e.y + 18);
+            }
             ctx.fillStyle = '#333';
             ctx.fillRect(e.x - 38, e.y - 70, 76, 8);
             ctx.fillStyle = '#ff5d5d';
@@ -1315,17 +1659,35 @@
             ctx.fillText(Math.max(0, e.hp), e.x, e.y - 78);
         }
 
-        // 👹 BOSS
+        // 👹 BOSS（沙漠地图 = 坦克！）
         if (boss && boss.hp > 0) {
-            ctx.font = '60px sans-serif';
-            ctx.fillText('👹', boss.x, boss.y + 20);
+            if (currentMap === MAPS.desert) {
+                // 🚜 画一辆坦克！
+                ctx.save();
+                ctx.translate(boss.x, boss.y);
+                if (imgOk(imgTank)) {
+                    // 🚜 真实坦克图（炮塔朝玩家！）
+                    var ba2 = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    ctx.rotate(ba2 + Math.PI / 2);
+                    ctx.drawImage(imgTank, -48, -48, 96, 96);
+                } else {
+                    ctx.font = '60px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🚜', 0, 20);
+                }
+                ctx.restore();
+            } else {
+                ctx.font = '60px sans-serif';
+                ctx.fillText('👹', boss.x, boss.y + 20);
+            }
             ctx.fillStyle = '#333';
             ctx.fillRect(boss.x - 40, boss.y - 46, 80, 8);
             ctx.fillStyle = '#ff2d55';
             ctx.fillRect(boss.x - 40, boss.y - 46, 80 * Math.max(0, boss.hp / boss.maxHp), 8);
             ctx.fillStyle = '#ffd93d';
             ctx.font = 'bold 13px sans-serif';
-            ctx.fillText('👹 ' + Math.max(0, boss.hp), boss.x, boss.y - 56);
+            ctx.textAlign = 'center';
+            ctx.fillText((currentMap === MAPS.desert ? '🚜坦克' : '👹') + ' ' + Math.max(0, boss.hp), boss.x, boss.y - 56);
         }
 
         // 🏢 2楼楼顶（站在上面俯视下方，能射击楼下敌人！）
@@ -1358,7 +1720,27 @@
             for (var ri = 0; ri < enemies.length; ri++) {
                 var re = enemies[ri];
                 if (re.floor === 2 && re.bIdx === player.bIdx) {
-                    ctx.fillText(re.ranged ? '🤖' : '👾', re.x, re.y + 18);
+                    if (currentMap === MAPS.desert && imgOk(imgSoldier)) {
+                        var rea = Math.atan2(player.y - re.y, player.x - re.x);
+                        ctx.save();
+                        ctx.translate(re.x, re.y);
+                        ctx.rotate(rea + Math.PI / 2);
+                        ctx.drawImage(imgSoldier, -23, -30, 46, 60);
+                        if (re.ranged) {
+                            ctx.fillStyle = '#222';
+                            ctx.fillRect(-3, -16, 6, 12);
+                            ctx.fillStyle = '#777';
+                            ctx.fillRect(-4, -22, 8, 6);
+                        } else {
+                            ctx.fillStyle = '#e8e8e8';
+                            ctx.fillRect(-2, -30, 5, 22);
+                            ctx.fillStyle = '#8a5a2b';
+                            ctx.fillRect(-4, -10, 8, 8);
+                        }
+                        ctx.restore();
+                    } else {
+                        ctx.fillText(enemyEmoji(re), re.x, re.y + 18);
+                    }
                     ctx.fillStyle = '#333';
                     ctx.fillRect(re.x - 38, re.y - 70, 76, 8);
                     ctx.fillStyle = '#ff5d5d';
@@ -1413,6 +1795,27 @@
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('❤️ ' + Math.max(0, player.hp) + '/' + maxHp, player.x, player.y - 42);
+        // 🪜 楼梯提示
+        if (stairPrompt) {
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(stairPrompt, player.x, player.y - 58);
+        }
+        // 🔡 破甲倒计时展示
+        if (laserPierce > 0) {
+            ctx.fillStyle = '#9ad6ff';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔡 破甲 ' + Math.ceil(laserPierce) + 's', player.x, player.y - 60);
+        }
+        // ⚙️ 加特林热度条
+        if (currentWeapon() === 'gatling') {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(player.x - 20, player.y - 56, 40, 5);
+            ctx.fillStyle = heat > 80 ? '#ff2d55' : (heat > 50 ? '#ffb347' : '#ffd93d');
+            ctx.fillRect(player.x - 20, player.y - 56, 40 * Math.min(1, heat / 100), 5);
+        }
 
         // 🔫 子弹
         ctx.fillStyle = '#ffd93d';
@@ -1430,6 +1833,30 @@
             ctx.fill();
         }
 
+        // ✨ 激光枪的光线！
+        if (laserActive && laserLen > 0) {
+            var lex = player.x + Math.cos(player.dir) * laserLen;
+            var ley = player.y + Math.sin(player.dir) * laserLen;
+            if (laserPierce > 0) {
+                // 🔡 破甲时：发蓝光！
+                ctx.strokeStyle = 'rgba(90, 180, 255, 0.9)';
+                ctx.lineWidth = 12;
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(lex, ley);
+                ctx.stroke();
+            }
+            ctx.strokeStyle = 'rgba(255, 60, 90, 0.9)';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(lex, ley);
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
         // 特效（光环 + 飘字 + 刀劈）
         for (var i = 0; i < fx.length; i++) {
             var f = fx[i];
@@ -1440,6 +1867,15 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(f.text, f.x, f.y - f.t * 36);
                 ctx.globalAlpha = 1;
+            } else if (f.boom) {
+                // 🚀 爆炸！
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, 18 + f.t * 80, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 150, 50, ' + (1 - f.t) * 0.7 + ')';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 220, 80, ' + (1 - f.t) + ')';
+                ctx.lineWidth = 5;
+                ctx.stroke();
             } else if (f.slash !== undefined) {
                 // 🔪 刀劈弧形
                 ctx.beginPath();
@@ -1646,7 +2082,7 @@
         // 武器区
         var wg = document.getElementById('shop-weapons');
         wg.innerHTML = '';
-        var wkeys = ['freeknife', 'rifle', 'shotgun', 'sniper', 'smg', 'gatling', 'laser', 'knife'];
+        var wkeys = ['freeknife', 'rifle', 'shotgun', 'sniper', 'smg', 'gatling', 'laser', 'knife', 'rpg'];
         for (var i = 0; i < wkeys.length; i++) {
             (function (w) {
                 var btn = document.createElement('button');
@@ -1666,7 +2102,8 @@
             { key: 'armor', name: '🛡️ 防弹衣', desc: '1件甲进背包（3耐久）', price: 100 },
             { key: 'helmet', name: '🪖 头盔', desc: '1个头进背包（3耐久）', price: 80 },
             { key: 'med', name: '💊 药品', desc: '1个药进背包，用+20血', price: 40 },
-            { key: 'repair', name: '🧰 甲修', desc: '修理甲/头盔 +1耐久', price: 30 }
+            { key: 'repair', name: '🧰 甲修', desc: '修理甲/头盔 +1耐久', price: 30 },
+            { key: 'rpg', name: '🚀 火箭弹', desc: '每局开局 +5 发', price: 40 }
         ];
         for (var i = 0; i < gearItems.length; i++) {
             (function (it) {
@@ -1706,6 +2143,7 @@
         else if (it.key === 'helmet') { addInv({ t: 'helmet', d: 3 }); saveInv(); showMsg('🛒 购买头盔！存入背包'); }
         else if (it.key === 'med') { addInv({ t: 'med' }); saveInv(); showMsg('🛒 购买药品！存入背包'); }
         else if (it.key === 'repair') { addInv({ t: 'repair' }); saveInv(); showMsg('🛒 购买甲修！存入背包'); }
+        else if (it.key === 'rpg') { gear.rpgBonus = (gear.rpgBonus || 0) + 5; saveGear(); showMsg('🛒 购买火箭弹！每局开局 +5 发'); }
         showMsg('🛒 购买' + it.name + '！');
         buildShop();
     }
@@ -1727,13 +2165,15 @@
                 if (!it) {
                     slot.innerHTML = '<span class="wh-empty">·</span>';
                 } else if (it.t === 'gun') {
-                    var equipped = loadout.indexOf(it.w) >= 0;
+                    var equipped = loadoutSrc.indexOf(idx) >= 0;   // 只知道“这一格”是否装了，同款枪不再全显示✓！
                     slot.innerHTML = (WEAPONS[it.w].emoji || '🔫') + '<br><span class="small">' + WEAPONS[it.w].name + (equipped ? ' ✓' : '') + '</span>';
                     slot.title = '点击装备/卸下';
                     slot.addEventListener('click', function () {
-                        if (equipped) { var k = loadout.indexOf(it.w); if (k >= 0) loadout[k] = null; }
-                        else if (loadout[0] === null || loadout[0] === 'pistol') loadout[0] = it.w;
-                        else if (loadout[1] === null) loadout[1] = it.w;
+                        if (equipped) {
+                            var k = loadoutSrc.indexOf(idx);
+                            if (k >= 0) { loadout[k] = null; loadoutSrc[k] = -1; }
+                        } else if (loadout[0] === null || loadout[0] === 'pistol') { loadout[0] = it.w; loadoutSrc[0] = idx; }
+                        else if (loadout[1] === null) { loadout[1] = it.w; loadoutSrc[1] = idx; }
                         else { showMsg('枪槽满了！'); return; }
                         buildWarehouse();
                     });

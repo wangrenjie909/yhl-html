@@ -714,57 +714,57 @@
             <p class="intro">点车型 → 点“🚀 使用这辆摩托车” → 再按“🏁 开始游戏”！</p>
             <div class="model-box">
                 <div class="model-card">
-                    <img src="model_sport.png" alt="本田">
+                    <img src="img/model_sport.png" alt="本田">
                     <h3>🏍️ 本田 Honda</h3>
                     <p>全球最大的摩托车品牌之一！从代步小排量到顶级仿赛全都有，品质可靠、皮实耐用，是无数骑士的第一台车。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_yamaha.png" alt="雅马哈">
+                    <img src="img/model_yamaha.png" alt="雅马哈">
                     <h3>🏍️ 雅马哈 Yamaha</h3>
                     <p>从乐器起家到顶级机车，颜值与性能兼备！MT街车、R系列仿赛都是经典，声音动听、操控顺滑。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_adv.png" alt="川崎">
+                    <img src="img/model_adv.png" alt="川崎">
                     <h3>🏍️ 川崎 Kawasaki</h3>
                     <p>绿色猛兽！Ninja仿赛和Z街车动力暴力、极速惊人，是追求刺激的骑士最爱。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_scooter.png" alt="铃木">
+                    <img src="img/model_scooter.png" alt="铃木">
                     <h3>🏍️ 铃木 Suzuki</h3>
                     <p>耐用省心、性价比之王！GSX-R系列赛道基因强大，皮实好骑，适合入门和长途。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_naked.png" alt="杜卡迪">
+                    <img src="img/model_naked.png" alt="杜卡迪">
                     <h3>🏍️ 杜卡迪 Ducati</h3>
                     <p>意大利红色烈马！V缸声浪震撼，Monster街车和Panigale仿赛都是艺术品，贵族运动机车。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_cruiser.png" alt="哈雷">
+                    <img src="img/model_cruiser.png" alt="哈雷">
                     <h3>🏍️ 哈雷 Harley</h3>
                     <p>美国经典巡航！轰鸣声浪独一无二，低矮霸气的外形，自由骑士的象征，长途骑行超舒服。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_race.png" alt="赛道赛车">
+                    <img src="img/model_race.png" alt="赛道赛车">
                     <h3>🏆 赛道赛车</h3>
                     <p>专业赛道猛兽！极致轻量、暴力加速、极限压弯，专为赛道而生，普通人驾驭不了的速度机器。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_vespa.png" alt="伟士牌">
+                    <img src="img/model_vespa.png" alt="伟士牌">
                     <h3>🛵 伟士牌 Vespa</h3>
                     <p>经典意大利踏板车！时尚复古的外形，一部《罗马假日》让它风靡全球，都市通勤的潮流代表。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_italika.png" alt="Italika">
+                    <img src="img/model_italika.png" alt="Italika">
                     <h3>🛵 Italika</h3>
                     <p>墨西哥国民踏板车！经济实惠、皮实耐用，是拉美街头最常见的通勤好帮手。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_moped.png" alt="轻骑助力车">
+                    <img src="img/model_moped.png" alt="轻骑助力车">
                     <h3>🛵 轻骑助力车</h3>
                     <p>小巧省油、简单易骑！不需要高超车技，新手和长辈都能轻松上手，买菜代步神器。</p>
                 </div>
                 <div class="model-card">
-                    <img src="model_drifter.png" alt="漂移改装车">
+                    <img src="img/model_drifter.png" alt="漂移改装车">
                     <h3>🏍️ Drifter改装车</h3>
                     <p>酷炫的改装巡航车！加长前叉、高把手、夸张排气，独一无二的个性座驾，回头率百分百。</p>
                 </div>
@@ -810,7 +810,7 @@
         <div id="road-canvas-wrap">
             <canvas id="road-canvas"></canvas>
         </div>
-        <img id="moto" src="moto_final.png" alt="🏍️">
+        <img id="moto" src="img/moto_final.png" alt="🏍️">
         <p id="wheelie-tip">💥 翘头中！转弯更灵活 · 速度更快！</p>
         <button id="btn-wheelie">💥 翘头</button>
         <p id="drift-tip">💨 漂移中！</p>
@@ -903,17 +903,17 @@
 
     // 🏍️ 每个品牌的固定属性：速度 / 操控 / 极速 / 价格 / 专属车身
     var BRANDS = {
-        '本田':   { speed: 7, control: 7, boost: 16, price: 400,  shape: 'moto_brand_honda.png' },
-        '雅马哈': { speed: 7, control: 8, boost: 17, price: 500,  shape: 'moto_brand_yamaha.png' },
-        '川崎':   { speed: 9, control: 6, boost: 19, price: 800,  shape: 'moto_brand_kawasaki.png' },
-        '铃木':   { speed: 8, control: 7, boost: 17, price: 350,  shape: 'moto_brand_suzuki.png' },
-        '杜卡迪': { speed: 9, control: 7, boost: 19, price: 900,  shape: 'moto_brand_ducati.png' },
-        '哈雷':   { speed: 6, control: 5, boost: 14, price: 600,  shape: 'moto_brand_harley.png' },
-        '赛道赛车': { speed: 10, control: 8, boost: 20, price: 1500, shape: 'moto_brand_race.png' },
-        '伟士牌': { speed: 4, control: 8, boost: 11, price: 300,  shape: 'moto_brand_vespa.png' },
-        'Italika': { speed: 4, control: 7, boost: 11, price: 200, shape: 'moto_brand_italika.png' },
-        '轻骑':   { speed: 3, control: 6, boost: 10, price: 0,    shape: 'moto_brand_moped.png' },
-        'Drifter': { speed: 6, control: 6, boost: 15, price: 700, shape: 'moto_brand_drifter.png' }
+        '本田':   { speed: 7, control: 7, boost: 16, price: 400,  shape: 'img/moto_brand_honda.png' },
+        '雅马哈': { speed: 7, control: 8, boost: 17, price: 500,  shape: 'img/moto_brand_yamaha.png' },
+        '川崎':   { speed: 9, control: 6, boost: 19, price: 800,  shape: 'img/moto_brand_kawasaki.png' },
+        '铃木':   { speed: 8, control: 7, boost: 17, price: 350,  shape: 'img/moto_brand_suzuki.png' },
+        '杜卡迪': { speed: 9, control: 7, boost: 19, price: 900,  shape: 'img/moto_brand_ducati.png' },
+        '哈雷':   { speed: 6, control: 5, boost: 14, price: 600,  shape: 'img/moto_brand_harley.png' },
+        '赛道赛车': { speed: 10, control: 8, boost: 20, price: 1500, shape: 'img/moto_brand_race.png' },
+        '伟士牌': { speed: 4, control: 8, boost: 11, price: 300,  shape: 'img/moto_brand_vespa.png' },
+        'Italika': { speed: 4, control: 7, boost: 11, price: 200, shape: 'img/moto_brand_italika.png' },
+        '轻骑':   { speed: 3, control: 6, boost: 10, price: 0,    shape: 'img/moto_brand_moped.png' },
+        'Drifter': { speed: 6, control: 6, boost: 15, price: 700, shape: 'img/moto_brand_drifter.png' }
     };
     function brandKeyOf(name) {
         for (var k in BRANDS) {
@@ -1084,8 +1084,8 @@
     function placeCarAt(s) {
         var c = document.createElement('div');
         c.className = 'car';
-        var carImgs = ['car_silver_dn.png', 'car_red_dn.png', 'car_blue_dn.png', 'car_green_dn.png',
-                       'car_yellow_dn.png', 'car_orange_dn.png', 'car_purple_dn.png'];
+        var carImgs = ['img/car_silver_dn.png', 'img/car_red_dn.png', 'img/car_blue_dn.png', 'img/car_green_dn.png',
+                       'img/car_yellow_dn.png', 'img/car_orange_dn.png', 'img/car_purple_dn.png'];
         var img = document.createElement('img');
         img.src = carImgs[Math.floor(Math.random() * carImgs.length)];
         img.alt = 'car';
