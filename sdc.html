@@ -275,6 +275,7 @@
 
     // 🎯 鼠标准星（枪口跟着鼠标）
     var mouse = { x: W / 2, y: H / 2, on: false };
+    var camX = 0, camY = 0;      // 🎥 摄像机位置（全局，准心转世界坐标用）
     var mouseDown = false;
     canvas.addEventListener('mousemove', function (e) {
         mouse.x = e.clientX;
@@ -292,7 +293,7 @@
         city: {
             name: '怪物小镇',
             W: 2600, H: 1800,
-            ground: '#14171d', wall: '#39414f', floor: '#232936',
+            ground: '#7d8797', wall: '#5c6775', floor: '#9aa4b3',
             extract: { x: 2300, y: 1620, r: 95 },
             buildings: [
                 { x: 300, y: 250, w: 220, h: 160 },
@@ -314,7 +315,7 @@
         desert: {
             name: '沙漠基地',
             W: 3400, H: 2400,
-            ground: '#1d1810', wall: '#4c4030', floor: '#2e2618',
+            ground: '#c9b68d', wall: '#8d7a55', floor: '#e0d2ac',
             extract: { x: 3050, y: 2150, r: 100 },
             buildings: [
                 { x: 350, y: 300, w: 260, h: 190 },
@@ -389,6 +390,14 @@
         return rectHit(x, y, 4);
     }
 
+    // 👹 BOSS 场地圈墙：小怪不许进！整圈都挡（包括门口）
+    function arenaNoEntry(x, y, rad) {
+        if (!arena) return false;
+        var dx = x - arena.x, dy = y - arena.y;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        return Math.abs(d - arena.r) < 14 + rad;
+    }
+
     // 👹 BOSS 场地圈墙：圈环带碰撞（门口不碰）
     function arenaHit(x, y, rad) {
         if (!arena) return false;
@@ -415,7 +424,8 @@
         for (var i = 0; i < buildings.length; i++) {
             var b = buildings[i];
             if (c.x > b.x && c.x < b.x + b.w && c.y > b.y && c.y < b.y + b.h) {
-                return player.inB !== i;   // 屋里的箱子：只有你在同一栋楼才看得见
+                if (player.inB === i) return false;
+                return !inPeek(c.x, c.y);   // 楼外：只有门缝里看得见！
             }
         }
         return false;   // 露天箱子看得见
@@ -426,7 +436,8 @@
         for (var i = 0; i < buildings.length; i++) {
             var b = buildings[i];
             if (e.x > b.x && e.x < b.x + b.w && e.y > b.y && e.y < b.y + b.h) {
-                return player.inB !== i;   // 玩家不在同一栋——看不见！
+                if (player.inB === i) return false;      // 同一栋：看得见
+                return !inPeek(e.x, e.y);                // 楼外：只有门缝里看得见！
             }
         }
         return false;   // 露天的怪看得见
@@ -442,6 +453,66 @@
         return true;
     }
 
+    // 🚪 门缝视野：准心（鼠标）瞄到门口，就能透过门洞看进屋里的"锥形"区域（准心一动视野就跟着动！）
+    function peekCone(b) {
+        if (player.inB !== -1 || player.floor !== 1) return null;   // 屋里/楼上不看
+        var dl = b.x + (b.w - DW) / 2, dr = b.x + (b.w + DW) / 2;
+        var dy = b.y + b.h;                       // 门在房子底部
+        var dl2 = b.x + (b.w - DW) / 2, dr2 = b.x + (b.w + DW) / 2;
+        var dy2 = b.y + b.h;
+        var dcx = (dl2 + dr2) / 2;
+        // 🚶 走到门前就能看（不用准心对准门缝）！
+        var pdx = player.x - dcx, pdy = player.y - dy2;
+        if (Math.abs(pdx) > 100) return null;               // 人在门附近（左右 100px）
+        if (pdy < -8 || pdy > 120) return null;             // 人在门口正前方（门下方）
+        // 🎯 眼睛 = 门口（随站位略偏）；准心 = 眼睛看到的位置 → 只显示准心看到的那一小块锥形！
+        var ex = dcx + pdx * 0.4, ey = dy2;                 // 眼睛：门口，站位不同视野就不同
+        var cxw = mouse.x + camX, cyw = mouse.y + camY;
+        var ang = Math.atan2(cyw - ey, cxw - ex);           // 看向准心的方向
+        var HA = 0.33;                                      // 半角 ~19°：只显示准心看到的那一块
+        var rr = { x: b.x, y: b.y, w: b.w, h: b.h };
+        function rayT(a) {                                  // 边界射线穿出房间的点
+            var cu = Math.cos(a), su = Math.sin(a);
+            var t0 = 0, t1 = Infinity;
+            if (Math.abs(cu) < 1e-9) { if (ex < rr.x || ex > rr.x + rr.w) return null; }
+            else {
+                var txa = (rr.x - ex) / cu, txb = (rr.x + rr.w - ex) / cu;
+                t0 = Math.max(t0, Math.min(txa, txb)); t1 = Math.min(t1, Math.max(txa, txb));
+            }
+            if (Math.abs(su) < 1e-9) { if (ey < rr.y || ey > rr.y + rr.h) return null; }
+            else {
+                var tya = (rr.y - ey) / su, tyb = (rr.y + rr.h - ey) / su;
+                t0 = Math.max(t0, Math.min(tya, tyb)); t1 = Math.min(t1, Math.max(tya, tyb));
+            }
+            if (t1 <= t0) return null;
+            return { e: { x: ex + cu * t1, y: ey + su * t1 }, n: { x: ex + cu * t0, y: ey + su * t0 } };
+        }
+        var L = rayT(ang - HA), R = rayT(ang + HA);
+        if (!L || !R) return null;
+        return [L.e.x, L.e.y, R.e.x, R.e.y, R.n.x, R.n.y, L.n.x, L.n.y];   // 锥形：远左→远右→近右→近左
+    }
+    // 🎯 点在多边形内？（射线法）
+    function pointInPoly(pts, px, py) {
+        var inside = false;
+        for (var i = 0, j = pts.length - 2; i < pts.length; i += 2) {
+            var xi = pts[i], yi = pts[i + 1], xj = pts[j], yj = pts[j + 1];
+            if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside;
+            j = i;
+        }
+        return inside;
+    }
+    // 👀 这个点是否在门缝视野里？
+    function inPeek(x, y) {
+        for (var i = 0; i < buildings.length; i++) {
+            var b = buildings[i];
+            if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) {
+                var cone = peekCone(b);
+                return cone ? pointInPoly(cone, x, y) : false;
+            }
+        }
+        return false;
+    }
+
     var player = { x: 200, y: 200, hp: 100, dir: 0, atkCd: 0, hitCd: 0, bullets: 30, weapons: ['pistol', null], weaponSlot: 0, floor: 1, bIdx: -1, tIdx: -1, inB: -1 };
     var maxHp = 100;   // 最大血量（用药、医疗包可以加）
     var floorCd = 0;    // 楼梯切换冷却
@@ -451,8 +522,16 @@
     var rpgAmmo = 0;   // 🚀 RPG 专属火箭弹（要找到才能用）
     var imgTank = new Image(); imgTank.src = 'img/tank.png';       // 🚜 真实坦克
     var imgSoldier = new Image(); imgSoldier.src = 'img/soldier.png';  // 🪖 真实士兵
+    var imgPistol = new Image(); imgPistol.src = 'img/pistol.png';       // 🔫 真实手枪
+    var imgRifle = new Image(); imgRifle.src = 'img/rifle.png';           // 🔫 AKM
+    var imgSniper = new Image(); imgSniper.src = 'img/awm.png';           // 🎯 AWM 真实照片！
+    var imgRpg = new Image(); imgRpg.src = 'img/rpg.png';                 // 🚀 RPG火箭筒
+    var imgLaser = new Image(); imgLaser.src = 'img/laser.png';           // ✨ 未来激光枪
+    var imgShotgun = new Image(); imgShotgun.src = 'img/shotgun.png';   // 💥 S12K 霰弹枪
+    var imgUzi = new Image(); imgUzi.src = 'img/uzi.png';               // 🚀 UZI
+    var imgM134 = new Image(); imgM134.src = 'img/m134.png';             // ⚙️ PKM 通用机枪（弹链供弹）
     function imgOk(img) { return img.complete && img.naturalWidth > 0; }
-    var heat = 0;                                            // 加特林热度
+    var heat = 0;                                            // PKM 热度
     var crates = [], enemies = [], bullets = [], drops = [], fx = [], enemyShots = [];
     var towers = [];          // 高型场沙锅塔（直接上3楼）
     var boss = null;          // 👹 BOSS！
@@ -511,7 +590,7 @@
         shotgun: { name: '霰弹枪', emoji: '💥', dmg: 15, rate: 0.65, speed: 640,  pellets: 6, spread: 0.30 },
         sniper:  { name: '狙击枪', emoji: '🎯', dmg: 95, rate: 0.85, speed: 1150, pellets: 1, spread: 0 },
         smg:     { name: '冲锋枪', emoji: '🚀', dmg: 18, rate: 0.07, speed: 780,  pellets: 1, spread: 0.07 },
-        gatling: { name: '加特林', emoji: '⚙️', dmg: 12, rate: 0.045, speed: 760, pellets: 1, spread: 0.13, overheat: true },
+        gatling: { name: 'PKM', emoji: '⚙️', dmg: 12, rate: 0.045, speed: 760, pellets: 1, spread: 0.13, overheat: true },
         laser:   { name: '激光枪', emoji: '✨', dmg: 42, rate: 0.16, speed: 1050, pellets: 1, spread: 0, laser: true },
         rpg:     { name: 'RPG', emoji: '🚀', dmg: 100, rate: 1.0, speed: 520, pellets: 1, spread: 0, rpg: true },
         knife:     { name: '小刀',   emoji: '🔪', dmg: 999, rate: 0.4, melee: true },
@@ -519,6 +598,156 @@
     };
     function currentWeapon() {
         return player.weapons[player.weaponSlot] || 'pistol';
+    }
+    // 🔫 画布直接画格洛克17（方正黑滑套+聚合物握把，一眼认出！）
+    function drawPistolG17(ctx, s) {
+        s = s || 1;
+        ctx.save();
+        ctx.scale(s, s);
+        // 方正黑色滑套
+        ctx.fillStyle = '#2b2b2b';
+        ctx.fillRect(-4, -11, 36, 13);
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-4, -11, 36, 13);
+        // 枪口
+        ctx.fillStyle = '#222';
+        ctx.fillRect(28, -9, 5, 9);
+        // 滑套顶
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(-2, -11, 34, 3);
+        // 抛壳窗
+        ctx.fillStyle = '#0f0f0f';
+        ctx.fillRect(12, -6, 14, 8);
+        // 扳机护圈
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(9, 4, 8, Math.PI * 0.1, Math.PI * 0.9);
+        ctx.stroke();
+        // 聚合物握把（后倾）
+        ctx.fillStyle = '#242424';
+        ctx.beginPath();
+        ctx.moveTo(-6, -2);
+        ctx.lineTo(2, -2);
+        ctx.lineTo(6, 22);
+        ctx.lineTo(-6, 22);
+        ctx.closePath();
+        ctx.fill();
+        // 握把防滑纹
+        ctx.fillStyle = '#3a3a3a';
+        for (var i = 0; i < 3; i++) {
+            ctx.fillRect(-5 + i * 2, 8 + i * 4, 10, 2.5);
+        }
+        ctx.restore();
+    }
+
+    // 🎯 画布手绘 AWM 狙击枪（长枪管+瞄准镜+弹匡+枪托，不是鞭子！）
+    function drawSniperAW(ctx, s) {
+        s = s || 1;
+        ctx.save();
+        ctx.scale(s, s);
+        ctx.fillStyle = '#3a3f4a';
+        ctx.fillRect(20, -2, 26, 4);
+        ctx.fillStyle = '#2a2f38';
+        ctx.fillRect(44, -3, 4, 6);
+        ctx.fillStyle = '#4a5058';
+        ctx.fillRect(0, -5, 22, 10);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(4, -12, 16, 5);
+        ctx.fillStyle = '#555';
+        ctx.fillRect(6, -13, 12, 2);
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.moveTo(6, 5);
+        ctx.lineTo(12, 5);
+        ctx.lineTo(14, 12);
+        ctx.lineTo(6, 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#8a6a3a';
+        ctx.beginPath();
+        ctx.moveTo(-2, -5);
+        ctx.lineTo(-14, -3);
+        ctx.lineTo(-14, 5);
+        ctx.lineTo(-2, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#555';
+        ctx.fillRect(-4, -7, 5, 3);
+        ctx.restore();
+    }
+
+    // 🚀 画布手绘 UZI 冲锋枪（短枪管+大弹匡+可折叠枪托）
+    function drawUzi(ctx, s) {
+        s = s || 1;
+        ctx.save();
+        ctx.scale(s, s);
+        ctx.fillStyle = '#2f3542';
+        ctx.fillRect(18, -2, 12, 4);
+        ctx.fillStyle = '#3a4150';
+        ctx.fillRect(-2, -4, 22, 8);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(2, -7, 12, 3);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(2, 4, 10, 14);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(2, 14, 10, 3);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(-6, -1, 6, 10);
+        ctx.strokeStyle = '#2f3542';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(-6, -1);
+        ctx.lineTo(-14, -6);
+        ctx.lineTo(-16, 0);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // ⚙️ 画布手绘 PKM 通用机枪（长枪管+弹链+两脚架）
+    function drawM134(ctx, s) {
+        s = s || 1;
+        ctx.save();
+        ctx.scale(s, s);
+        ctx.fillStyle = '#3a3f4a';
+        ctx.fillRect(10, -6, 40, 12);
+        ctx.fillStyle = '#2a2f38';
+        ctx.fillRect(48, -5, 4, 10);
+        ctx.fillStyle = '#4a5058';
+        ctx.fillRect(10, -6, 40, 3);
+        ctx.fillStyle = '#2f3542';
+        ctx.fillRect(14, -6, 2, 12);
+        ctx.fillRect(20, -6, 2, 12);
+        ctx.fillRect(26, -6, 2, 12);
+        ctx.fillRect(32, -6, 2, 12);
+        ctx.fillRect(38, -6, 2, 12);
+        ctx.fillRect(44, -6, 2, 12);
+        ctx.fillStyle = '#2b3038';
+        ctx.fillRect(-6, -5, 18, 10);
+        ctx.fillStyle = '#ffd93d';
+        ctx.fillRect(-4, -10, 30, 3);
+        ctx.fillStyle = '#c9a23a';
+        ctx.fillRect(0, -10, 3, 3);
+        ctx.fillRect(8, -10, 3, 3);
+        ctx.fillRect(16, -10, 3, 3);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(-10, -3, 5, 6);
+        ctx.restore();
+    }
+
+    // 🔫 玩家手里的真实枪（按号型选图！）
+    function playerGunVisual() {
+        var cw = currentWeapon();
+        if (cw === 'rpg' && imgOk(imgRpg)) return { img: imgRpg, w: 40, h: 40 };            // RPG
+        if (cw === 'sniper' && imgOk(imgSniper)) return { img: imgSniper, w: 52, h: 21 };    // 🎯 AWM 真实照片
+        if (cw === 'smg' && imgOk(imgUzi)) return { img: imgUzi, w: 40, h: 22 };            // UZI 真实照片
+        if (cw === 'gatling' && imgOk(imgM134)) return { img: imgM134, w: 46, h: 16 };      // ⚙️ PKM 通用机枪
+        if (cw === 'laser' && imgOk(imgLaser)) return { img: imgLaser, w: 46, h: 14 };      // 激光枪
+        if (cw === 'shotgun' && imgOk(imgShotgun)) return { img: imgShotgun, w: 46, h: 15 };  // 💥 S12K 侧视图  // 💥 S12K 霰弹枪！
+        if (imgOk(imgRifle)) return { img: imgRifle, w: 42, h: 20 };                        // AKM 及其他
+        if (imgOk(imgPistol)) return { img: imgPistol, w: 38, h: 28 };                      // 沙漠之鹰
+        return null;
     }
     function randomWeapon() {
         var ks = ['rifle', 'shotgun', 'sniper', 'smg', 'gatling', 'laser', 'knife', 'rpg'];
@@ -638,7 +867,8 @@
                 x = 120 + Math.random() * (MAPW - 240);
                 y = 120 + Math.random() * (MAPH - 240);
                 tries++;
-            } while ((rectHit(x, y, 18) || Math.sqrt((x - 200) * (x - 200) + (y - 200) * (y - 200)) < 380) && tries < 80);
+            } while ((rectHit(x, y, 18) || Math.sqrt((x - 200) * (x - 200) + (y - 200) * (y - 200)) < 380 ||
+                      (arena && Math.sqrt((x - arena.x) * (x - arena.x) + (y - arena.y) * (y - arena.y)) < arena.r + 40)) && tries < 80);
             // 👾 近战
             enemies.push({ x: x, y: y, hp: 100, wander: Math.random() * 6.28, ranged: false, shotCd: 1.5 + Math.random(), floor: 1, bIdx: -1 });
             // 🤖 远程：就在近战旁边（200~320px），两种始终在一起！
@@ -646,6 +876,14 @@
             var dist = 200 + Math.random() * 120;
             var x2 = Math.max(20, Math.min(MAPW - 20, x + Math.cos(ang) * dist));
             var y2 = Math.max(20, Math.min(MAPH - 20, y + Math.sin(ang) * dist));
+            if (arena) {
+                var a2dx = x2 - arena.x, a2dy = y2 - arena.y;
+                var a2d = Math.sqrt(a2dx * a2dx + a2dy * a2dy);
+                if (a2d < arena.r + 20) {   // 搭档也不许进决斗场！
+                    x2 = arena.x + a2dx / (a2d || 1) * (arena.r + 26);
+                    y2 = arena.y + a2dy / (a2d || 1) * (arena.r + 26);
+                }
+            }
             enemies.push({ x: x2, y: y2, hp: 100, wander: Math.random() * 6.28, ranged: true, shotCd: 1.5 + Math.random(), floor: 1, bIdx: -1 });
         }
         // 👹 BOSS 出生（离玩家远点）
@@ -693,11 +931,12 @@
                 twy = 150 + Math.random() * (MAPH - 300);
                 tries++;
                 overlap = rectHit(twx, twy, 70);
-                // 避开房子（不能建在房子里面！）
+                // 避开房子（塔身半径 65px，四周再留 90px，绝不插进房子！）
                 for (var bi = 0; bi < buildings.length; bi++) {
                     var bd2 = buildings[bi];
-                    if (twx > bd2.x - 60 && twx < bd2.x + bd2.w + 60 && twy > bd2.y - 60 && twy < bd2.y + bd2.h + 60) overlap = true;
+                    if (twx > bd2.x - 160 && twx < bd2.x + bd2.w + 160 && twy > bd2.y - 160 && twy < bd2.y + bd2.h + 160) overlap = true;
                 }
+                if (rectHit(twx, twy, 160)) overlap = true;   // 距墙也要远！
                 // 避开其他锅塔（不重叠）
                 for (var tj = 0; tj < towers.length; tj++) {
                     var ot = towers[tj];
@@ -942,7 +1181,7 @@
                 var stx2 = cb.x + T + 24, sty2 = cb.y + T + 24;
                 if (Math.abs(player.x - stx2) < 26 && Math.abs(player.y - sty2) < 26) {
                     player.floor = 1; player.bIdx = -1;
-                    player.x = stx2; player.y = sty2;
+                    player.x = stx2 + 34; player.y = sty2 + 34;   // 🚶 放到楼梯旁边，不再立刻上楼！
                     floorCd = 0.8;
                     showMsg('⬇️ 下到 1 楼！');
                 }
@@ -951,7 +1190,7 @@
                 var tlx2 = ctw.x + ctw.w / 2, tly2 = ctw.y + 10;
                 if (Math.abs(player.x - tlx2) < 30 && Math.abs(player.y - tly2) < 30) {
                     player.floor = 1; player.tIdx = -1;
-                    player.x = ctw.x + ctw.w / 2; player.y = ctw.y + ctw.h + 24;
+                    player.x = ctw.x + ctw.w / 2 + 48; player.y = ctw.y + ctw.h + 30;   // 🚶 放到梯子旁边，不再站在触发点上！
                     floorCd = 0.8;
                     showMsg('⬇️ 下塔！');
                 }
@@ -1050,7 +1289,7 @@
                     // ⚙️ 加特林过热！无法射击，等待冷却
                     heat -= 45 * dt;
                     if (heat <= 0) heat = 0;
-                    if (player.atkCd <= 0) { showMsg('🔥 加特林过热！冷却中…'); player.atkCd = 1.2; }
+                    if (player.atkCd <= 0) { showMsg('🔥 PKM 过热！冷却中…'); player.atkCd = 1.2; }
                 } else if (firing) {
                     player.atkCd = wg.rate;
                     player.bullets--;
@@ -1233,8 +1472,18 @@
                 e.x = Math.max(eb.x + T + 4, Math.min(eb.x + eb.w - T - 4, e.x + mx));
                 e.y = Math.max(eb.y + T + 4, Math.min(eb.y + eb.h - T - 4, e.y + my));
             } else {
-                if (!rectHit(e.x + mx, e.y, 18) && !arenaHit(e.x + mx, e.y, 18)) e.x += mx;
-                if (!rectHit(e.x, e.y + my, 18) && !arenaHit(e.x, e.y + my, 18)) e.y += my;
+                if (!rectHit(e.x + mx, e.y, 18) && !arenaNoEntry(e.x + mx, e.y, 18)) e.x += mx;
+                if (!rectHit(e.x, e.y + my, 18) && !arenaNoEntry(e.x, e.y + my, 18)) e.y += my;
+                // 👹 小怪不许进决斗场：已经在里面的直接推出去！
+                if (arena) {
+                    var eadx = e.x - arena.x, eady = e.y - arena.y;
+                    var ead = Math.sqrt(eadx * eadx + eady * eady);
+                    if (ead < arena.r) {
+                        var eux = eadx / (ead || 1), euy = eady / (ead || 1);
+                        e.x = arena.x + eux * (arena.r + 10);
+                        e.y = arena.y + euy * (arena.r + 10);
+                    }
+                }
             }
             e.x = Math.max(20, Math.min(MAPW - 20, e.x));
             e.y = Math.max(20, Math.min(MAPH - 20, e.y));
@@ -1430,13 +1679,13 @@
     function draw() {
         ctx.fillStyle = currentMap.ground;
         ctx.fillRect(0, 0, W, H);
-        var camX = Math.max(0, Math.min(MAPW - W, player.x - W / 2));
-        var camY = Math.max(0, Math.min(MAPH - H, player.y - H / 2));
+        camX = Math.max(0, Math.min(MAPW - W, player.x - W / 2));
+        camY = Math.max(0, Math.min(MAPH - H, player.y - H / 2));
         ctx.save();
         ctx.translate(-camX, -camY);
 
         // 网格
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.07)';
         ctx.lineWidth = 1;
         for (var gx = 0; gx <= MAPW; gx += 100) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, MAPH); ctx.stroke(); }
         for (var gy = 0; gy <= MAPH; gy += 100) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(MAPW, gy); ctx.stroke(); }
@@ -1462,19 +1711,50 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('房', b.x + b.w / 2, b.y + T + 16);
             } else {
-                // 🏢 在外面看：只看到封闭屋顶（看不到里面）
-                ctx.fillStyle = 'rgba(96, 82, 62, 0.95)';
-                ctx.fillRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
-                ctx.strokeStyle = '#8a7a55';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
-                // 门口缺口（能看出门在哪）
-                ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                ctx.fillRect(b.x + (b.w - DW) / 2, b.y + b.h - 5, DW, 9);
-                ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                ctx.font = 'bold 13px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('房', b.x + b.w / 2, b.y + b.h / 2 + 4);
+                // 🚪 门缝视野：站在门外能透过门洞看到屋里的一部分（画面跟着你移动！）
+                var cone = peekCone(b);
+                if (cone) {
+                    // 先画屋里（被门缝锥形裁剪）
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(cone[0], cone[1]);
+                    for (var cj = 2; cj < cone.length; cj += 2) ctx.lineTo(cone[cj], cone[cj + 1]);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.fillStyle = currentMap.wall;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    ctx.fillStyle = currentMap.floor;
+                    ctx.fillRect(b.x + T, b.y + T, b.w - 2 * T, b.h - 2 * T);
+                    ctx.restore();
+                    // 屋顶（evenodd 把门缝锥形挖掉：只有门洞能看到里面）
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                    ctx.moveTo(cone[0], cone[1]);
+                    for (var ck = 2; ck < cone.length; ck += 2) ctx.lineTo(cone[ck], cone[ck + 1]);
+                    ctx.closePath();
+                    ctx.clip('evenodd');
+                    ctx.fillStyle = 'rgba(96, 82, 62, 0.95)';
+                    ctx.fillRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                    ctx.strokeStyle = '#8a7a55';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                    ctx.restore();
+                } else {
+                    // 🏢 在外面看：只看到封闭屋顶（看不到里面）
+                    ctx.fillStyle = 'rgba(96, 82, 62, 0.95)';
+                    ctx.fillRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                    ctx.strokeStyle = '#8a7a55';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+                    // 门口缺口（能看出门在哪）
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(b.x + (b.w - DW) / 2, b.y + b.h - 5, DW, 9);
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('房', b.x + b.w / 2, b.y + b.h / 2 + 4);
+                }
             }
             // 🪜 楼梯标记（只有有2楼的房子才有！）
             if (b.has2) {
@@ -1633,11 +1913,15 @@
                 ctx.rotate(ea + Math.PI / 2);
                 ctx.drawImage(imgSoldier, -23, -30, 46, 60);
                 if (e.ranged) {
-                    // 🔫 手枪（跟着转！）
-                    ctx.fillStyle = '#222';
-                    ctx.fillRect(-3, -16, 6, 12);
-                    ctx.fillStyle = '#777';
-                    ctx.fillRect(-4, -22, 8, 6);
+                    // 🔫 真实手枪（跟着转，枪口朝玩家！）
+                    if (imgOk(imgPistol)) {
+                        drawPistolG17(ctx, 0.35);
+                    } else {
+                        ctx.fillStyle = '#222';
+                        ctx.fillRect(-3, -16, 6, 12);
+                        ctx.fillStyle = '#777';
+                        ctx.fillRect(-4, -22, 8, 6);
+                    }
                 } else {
                     // 🔪 大刀
                     ctx.fillStyle = '#e8e8e8';
@@ -1668,8 +1952,8 @@
                 if (imgOk(imgTank)) {
                     // 🚜 真实坦克图（炮塔朝玩家！）
                     var ba2 = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    ctx.rotate(ba2 + Math.PI / 2);
-                    ctx.drawImage(imgTank, -48, -48, 96, 96);
+                    ctx.rotate(ba2 - Math.PI);   // 🚜 炮管朝左，旋转后朝玩家！
+                    ctx.drawImage(imgTank, -48, -27, 96, 54);
                 } else {
                     ctx.font = '60px sans-serif';
                     ctx.textAlign = 'center';
@@ -1727,10 +2011,14 @@
                         ctx.rotate(rea + Math.PI / 2);
                         ctx.drawImage(imgSoldier, -23, -30, 46, 60);
                         if (re.ranged) {
-                            ctx.fillStyle = '#222';
-                            ctx.fillRect(-3, -16, 6, 12);
-                            ctx.fillStyle = '#777';
-                            ctx.fillRect(-4, -22, 8, 6);
+                            if (imgOk(imgPistol)) {
+                                drawPistolG17(ctx, 0.35);
+                            } else {
+                                ctx.fillStyle = '#222';
+                                ctx.fillRect(-3, -16, 6, 12);
+                                ctx.fillStyle = '#777';
+                                ctx.fillRect(-4, -22, 8, 6);
+                            }
                         } else {
                             ctx.fillStyle = '#e8e8e8';
                             ctx.fillRect(-2, -30, 5, 22);
@@ -1773,20 +2061,42 @@
         ctx.rotate(player.dir);
         ctx.font = '30px sans-serif';
         ctx.textAlign = 'center';
+        ctx.save();
+        ctx.scale(-1, 1);          // 🏃 表情默认脸朝左，翻过来朝右（对着枪口方向！）
         ctx.fillText('🏃', 0, 9);
-        // 🔪 刀 或 枪（枪管长度按枪械）
+        ctx.restore();
+        // 🔪 刀 或 真实步枪
         var cwg = currentWeapon();
         if (cwg === 'knife') {
             ctx.fillStyle = '#e8e8e8';
-            ctx.fillRect(16, -2, 22, 4);
+            ctx.fillRect(16, -9, 22, 4);
             ctx.fillStyle = '#8a5a2b';
-            ctx.fillRect(14, -4, 4, 8);
+            ctx.fillRect(14, -11, 4, 8);
         } else {
-            var glen = cwg === 'sniper' ? 30 : (cwg === 'shotgun' || cwg === 'gatling' ? 26 : (cwg === 'laser' ? 22 : 18));
-            ctx.fillStyle = '#3a3f4a';
-            ctx.fillRect(14, -3, glen, 6);
-            ctx.fillStyle = '#ff8e3c';
-            ctx.fillRect(14 + glen, -5, 6, 10);
+            // 🔫 枪械（画布：G17/UZI/M134/AWM；图片：AKM/S12K/RPG/激光）
+            if (cwg === 'pistol') {
+                ctx.save();
+                ctx.translate(0, -7);   // 手枪也抬到胸前
+                drawPistolG17(ctx, 0.5);
+                ctx.restore();
+            } else {
+                var gv = playerGunVisual();
+                if (gv) {
+                    ctx.drawImage(gv.img, 6, -gv.h / 2 - 7, gv.w, gv.h);   // 枪抬到胸前，不是用脚拿！
+                } else {
+                    // 图片未加载：画布备用
+                    if (cwg === 'sniper') { drawSniperAW(ctx, 0.9); }
+                    else if (cwg === 'smg') { drawUzi(ctx, 0.7); }
+                    else if (cwg === 'gatling') { drawM134(ctx, 0.7); }
+                    else {
+                        var glen = cwg === 'shotgun' ? 26 : (cwg === 'laser' ? 22 : 18);
+                        ctx.fillStyle = '#3a3f4a';
+                        ctx.fillRect(14, -10, glen, 6);
+                        ctx.fillStyle = '#ff8e3c';
+                        ctx.fillRect(14 + glen, -12, 6, 10);
+                    }
+                }
+            }
         }
         ctx.restore();
 
@@ -1809,7 +2119,7 @@
             ctx.textAlign = 'center';
             ctx.fillText('🔡 破甲 ' + Math.ceil(laserPierce) + 's', player.x, player.y - 60);
         }
-        // ⚙️ 加特林热度条
+        // ⚙️ PKM 热度条
         if (currentWeapon() === 'gatling') {
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.fillRect(player.x - 20, player.y - 56, 40, 5);
