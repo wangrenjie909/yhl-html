@@ -653,12 +653,12 @@
         }
         #ball-canvas {
             width: 100%;
-            max-width: 760px;
-            height: 420px;
+            max-width: 480px;       /* 🎱 框框缩小（从 760 缩到 480） */
+            height: 265px;          /* 420 × 480/760 等比缩小 */
             background: rgba(20, 20, 30, 0.55);
-            border-radius: 20px;
+            border-radius: 16px;
             cursor: pointer;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
         }
         /* 🎛️ 小球数量调节 */
         #ball-controls {
@@ -681,9 +681,56 @@
             font-weight: bold;
             color: #ffd93d;
         }
+        .ball-btn {
+            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .ball-btn:active { transform: scale(0.95); }
+        /* 🏍️ 当前摩托车：图片 + 贴在图右上角的角标 */
+        #current-bike-badge {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 999;
+            background: rgba(15, 18, 26, 0.88);
+            border: 1px solid rgba(255, 142, 60, 0.55);
+            border-radius: 10px;
+            padding: 4px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+            pointer-events: none;
+        }
+        #current-bike-badge img {
+            width: 58px;
+            height: 126px;
+            object-fit: contain;
+            display: block;
+        }
+        #current-bike-badge .tag {
+            position: absolute;
+            top: 4px;
+            right: 4px;                       /* 📌 贴在图片自己的右上角！ */
+            background: rgba(255, 142, 60, 0.95);
+            color: #1a1208;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 0 8px 0 8px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
+
+    <!-- 🏍️ 当前摩托车：图片 + 贴在图右上角的角标 -->
+    <div id="current-bike-badge">
+        <img id="badge-bike-img" src="img/moto_final.png" alt="🏍️">
+        <span class="tag" id="badge-bike-tag">🚀 当前：默认</span>
+    </div>
 
     <!-- 页面内容：开始游戏后会向上飞走，失败后飞回来！ -->
     <div id="page-content">
@@ -712,61 +759,62 @@
         <div id="moto-models">
             <h2>🏍️ 摩托车品牌</h2>
             <p class="intro">点车型 → 点“🚀 使用这辆摩托车” → 再按“🏁 开始游戏”！</p>
+            <p class="intro current-moto" id="current-moto-label">🚀 当前摩托车：默认摩托车</p>
             <div class="model-box">
-                <div class="model-card">
-                    <img src="img/model_sport.png" alt="本田">
-                    <h3>🏍️ 本田 Honda</h3>
-                    <p>全球最大的摩托车品牌之一！从代步小排量到顶级仿赛全都有，品质可靠、皮实耐用，是无数骑士的第一台车。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_yamaha.png" alt="雅马哈">
-                    <h3>🏍️ 雅马哈 Yamaha</h3>
-                    <p>从乐器起家到顶级机车，颜值与性能兼备！MT街车、R系列仿赛都是经典，声音动听、操控顺滑。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_adv.png" alt="川崎">
-                    <h3>🏍️ 川崎 Kawasaki</h3>
-                    <p>绿色猛兽！Ninja仿赛和Z街车动力暴力、极速惊人，是追求刺激的骑士最爱。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_scooter.png" alt="铃木">
-                    <h3>🏍️ 铃木 Suzuki</h3>
-                    <p>耐用省心、性价比之王！GSX-R系列赛道基因强大，皮实好骑，适合入门和长途。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_naked.png" alt="杜卡迪">
-                    <h3>🏍️ 杜卡迪 Ducati</h3>
-                    <p>意大利红色烈马！V缸声浪震撼，Monster街车和Panigale仿赛都是艺术品，贵族运动机车。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_cruiser.png" alt="哈雷">
-                    <h3>🏍️ 哈雷 Harley</h3>
-                    <p>美国经典巡航！轰鸣声浪独一无二，低矮霸气的外形，自由骑士的象征，长途骑行超舒服。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_race.png" alt="赛道赛车">
-                    <h3>🏆 赛道赛车</h3>
-                    <p>专业赛道猛兽！极致轻量、暴力加速、极限压弯，专为赛道而生，普通人驾驭不了的速度机器。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_vespa.png" alt="伟士牌">
-                    <h3>🛵 伟士牌 Vespa</h3>
-                    <p>经典意大利踏板车！时尚复古的外形，一部《罗马假日》让它风靡全球，都市通勤的潮流代表。</p>
-                </div>
-                <div class="model-card">
-                    <img src="img/model_italika.png" alt="Italika">
-                    <h3>🛵 Italika</h3>
-                    <p>墨西哥国民踏板车！经济实惠、皮实耐用，是拉美街头最常见的通勤好帮手。</p>
-                </div>
-                <div class="model-card">
+<div class="model-card">
                     <img src="img/model_moped.png" alt="轻骑助力车">
                     <h3>🛵 轻骑助力车</h3>
                     <p>小巧省油、简单易骑！不需要高超车技，新手和长辈都能轻松上手，买菜代步神器。</p>
                 </div>
-                <div class="model-card">
+<div class="model-card">
+                    <img src="img/model_italika.png" alt="Italika">
+                    <h3>🛵 Italika</h3>
+                    <p>墨西哥国民踏板车！经济实惠、皮实耐用，是拉美街头最常见的通勤好帮手。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_vespa.png" alt="伟士牌">
+                    <h3>🛵 伟士牌 Vespa</h3>
+                    <p>经典意大利踏板车！时尚复古的外形，一部《罗马假日》让它风靡全球，都市通勤的潮流代表。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_scooter.png" alt="铃木">
+                    <h3>🏍️ 铃木 Suzuki</h3>
+                    <p>耐用省心、性价比之王！GSX-R系列赛道基因强大，皮实好骑，适合入门和长途。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_sport.png" alt="本田">
+                    <h3>🏍️ 本田 Honda</h3>
+                    <p>全球最大的摩托车品牌之一！从代步小排量到顶级仿赛全都有，品质可靠、皮实耐用，是无数骑士的第一台车。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_yamaha.png" alt="雅马哈">
+                    <h3>🏍️ 雅马哈 Yamaha</h3>
+                    <p>从乐器起家到顶级机车，颜值与性能兼备！MT街车、R系列仿赛都是经典，声音动听、操控顺滑。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_cruiser.png" alt="哈雷">
+                    <h3>🏍️ 哈雷 Harley</h3>
+                    <p>美国经典巡航！轰鸣声浪独一无二，低矮霸气的外形，自由骑士的象征，长途骑行超舒服。</p>
+                </div>
+<div class="model-card">
                     <img src="img/model_drifter.png" alt="漂移改装车">
                     <h3>🏍️ Drifter改装车</h3>
                     <p>酷炫的改装巡航车！加长前叉、高把手、夸张排气，独一无二的个性座驾，回头率百分百。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_adv.png" alt="川崎">
+                    <h3>🏍️ 川崎 Kawasaki</h3>
+                    <p>绿色猛兽！Ninja仿赛和Z街车动力暴力、极速惊人，是追求刺激的骑士最爱。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_naked.png" alt="杜卡迪">
+                    <h3>🏍️ 杜卡迪 Ducati</h3>
+                    <p>意大利红色烈马！V缸声浪震撼，Monster街车和Panigale仿赛都是艺术品，贵族运动机车。</p>
+                </div>
+<div class="model-card">
+                    <img src="img/model_race.png" alt="赛道赛车">
+                    <h3>🏆 赛道赛车</h3>
+                    <p>专业赛道猛兽！极致轻量、暴力加速、极限压弯，专为赛道而生，普通人驾驭不了的速度机器。</p>
                 </div>
             </div>
         </div>
@@ -796,8 +844,12 @@
             <p class="intro">🖱️ 用鼠标在碗里搅一搅，小球会被你的鼠标推开哦！</p>
             <div id="ball-controls">
                 <label for="ball-count">🎱 小球数量：</label>
-                <input type="range" id="ball-count" min="10" max="300" value="150">
-                <span id="ball-count-label">150</span>
+                <input type="range" id="ball-count" min="1" max="300" value="220">
+                <span id="ball-count-label">220</span>
+                <label for="stick-count">🧍 火柴人：</label>
+                <input type="range" id="stick-count" min="0" max="12" value="4">
+                <span id="stick-count-label">4</span>
+                <button id="soccer-btn" class="ball-btn">⚽ 加球门（足球模式）</button>
             </div>
             <canvas id="ball-canvas" width="760" height="420"></canvas>
         </div>
@@ -859,6 +911,7 @@
     var content = document.getElementById('page-content');
     var startBtn = document.getElementById('start-game');
     var score = 0;
+    var driftPts = 0;       // 🏆 漂移分：只在弯道漂移才加分！
     var running = false;
     var cars = [];
     var head = 0;           // 摩托车朝向（0=直行，负=左，正=右）
@@ -898,6 +951,8 @@
     var driftTip = document.getElementById('drift-tip');
     var boostLeft = 0;          // 极速剩余帧数
     var boostCooldown = 0;      // 极速冷却帧数
+    var driftTime = 0;          // 💨 当前漂移持续帧数
+    var driftBoostLeft = 0;     // 💥 漂移结束后的加速剩余帧数
     var btnBoost = document.getElementById('btn-boost');
     var boostTip = document.getElementById('boost-tip');
 
@@ -1111,6 +1166,7 @@
         content.classList.add('fly-up');
         game.classList.add('full');
         game.style.display = 'block';
+        document.getElementById('current-bike-badge').style.display = 'none';   // 游戏时藏起右上角徽章
         game.style.transform = '';
         setupScene();   // 准备场景（不开始）
         document.getElementById('howto').style.display = 'flex';   // 📖 弹出玩法说明！
@@ -1122,6 +1178,7 @@
         cars.forEach(function (cc) { cc.el.remove(); });
         cars = [];
         score = 0;
+        driftPts = 0;
         gScore.textContent = '得分：0 · 过弯：0';
         W2 = game.clientWidth / 2;
         MOTO_SY = game.clientHeight - 90;
@@ -1213,6 +1270,8 @@
         throttle += touchThrottle;
         // 🚀 极速时速度爆表（每辆车极速不同！）—— 速度一点一点快速增加，不瞬间跳变！
         var speedTarget = boosting ? b.boost : (wheelie ? b.speed + 2 : b.speed) + throttle * 2;
+        if (drifting) speedTarget -= 1.5;                    // 💨 漂移时稍微减速（约15 km/h）
+        if (driftBoostLeft > 0) { driftBoostLeft--; speedTarget += 3; }   // 💥 漂完的加速（约30 km/h）
         speedTarget = Math.max(0, Math.min(boosting ? 20 : 12, speedTarget));   // 🚫 不倒车，只前进！
         currentSpeed += (speedTarget - currentSpeed) * 0.08;   // 平滑加速/减速
         if (Math.abs(speedTarget - currentSpeed) < 0.05) currentSpeed = speedTarget;
@@ -1236,14 +1295,25 @@
         var motoWX = camX + Math.cos(at.a) * latM;   // 摩托车真实位置
         var motoWY = camY + Math.sin(at.a) * latM;
 
-        // 💨 漂移（侧滑）
+        // 💨 漂移（侧滑）：漂移时稍微减速，漂完送一段加速！
         var drifting = (keys[' '] === true) || driftHeld;
         if (drifting) {
+            driftTime++;
             if (steer !== 0) slide += steer * 0.9;
             slide *= 0.93;
             latM += slide;
+            // 🏆 只有弯道漂移才得分！直道漂移不加分！
+            if (inCorner()) {
+                driftPts++;
+                driftTip.textContent = '💨 弯道漂移 +分！';
+            } else {
+                driftTip.textContent = '🛣️ 直道漂移不加分，去弯道漂！';
+            }
             driftTip.style.display = 'block';
         } else {
+            // 💥 漂移结束：漂够一小段就送加速（约1.5秒）！
+            if (driftTime >= 18) driftBoostLeft = 90;
+            driftTime = 0;
             slide = 0;
             driftTip.style.display = 'none';
         }
@@ -1326,7 +1396,7 @@
         game.style.transform = inCorner() ? 'scale(0.92)' : '';
 
         score++;
-        gScore.textContent = '得分：' + Math.floor(score / 10) + ' · 过弯：' + turnsPassed;
+        gScore.textContent = '得分：' + Math.floor(score / 10) + ' · 漂移分：' + Math.floor(driftPts / 10) + ' · 过弯：' + turnsPassed;
     }
 
     // 💥 游戏结束（msg是结束语）
@@ -1338,9 +1408,10 @@
         content.classList.add('fly-down');
         game.classList.remove('full');
         game.style.display = 'none';
+        document.getElementById('current-bike-badge').style.display = 'block';   // 徽章回来！
         game.style.transform = '';
         // 🏆 记录最高得分 + 赚积分 + 查成就
-        var run = Math.floor(score / 10);
+        var run = Math.floor((score + driftPts) / 10);
         if (run > bestScore) {
             bestScore = run;
             try { localStorage.setItem('motoBest', bestScore); } catch (e) {}
@@ -1462,7 +1533,9 @@
         var bb = brandOf(models[cur].name);
         if (bb) {
             var hasIt = owned.indexOf(key) >= 0;
-            lbStats.textContent = '⚡ 速度：' + bb.speed + '  ·  🎮 操控：' + bb.control + '  ·  🚀 极速：' + bb.boost +
+            lbStats.textContent = '⚡ 最高速度：' + (bb.speed * 10) + ' km/h  ·  🎮 转向：' +
+                Math.round((0.035 + bb.control * 0.005) * 60 * 180 / Math.PI) + '°/秒' +
+                '  ·  🚀 极速：' + (bb.boost * 10) + ' km/h' +
                 '  ·  💰 价格：' + (bb.price === 0 ? '免费' : bb.price + ' 积分' + (hasIt ? '（已拥有）' : ''));
             document.getElementById('lb-use').textContent = hasIt ? '🚀 使用这辆摩托车' : '🔒 解锁并骑上（' + bb.price + ' 积分）';
         }
@@ -1505,6 +1578,7 @@
         currentBrandName = models[cur].name;
         moto.src = bb.shape;
         moto.style.filter = '';
+        updateMotoLabel();   // 🚀 外部页面显示当前摩托车！
         lb.style.display = 'none';
         useToast.style.display = 'block';
         clearTimeout(useToastTimer);
@@ -1558,7 +1632,17 @@
             el.textContent = '💰 积分：' + points + '  ·  🏆 最高得分：' + bestScore + '  ·  🚀 已解锁：' + owned.length + '/' + Object.keys(BRANDS).length;
         }
     }
+    // 🏍️ 外部页面显示当前选中的摩托车（列表标签 + 右上角徽章）
+    function updateMotoLabel() {
+        var el = document.getElementById('current-moto-label');
+        if (el) el.textContent = '🚀 当前摩托车：' + (currentBrandName || '默认摩托车');
+        var bimg = document.getElementById('badge-bike-img');
+        var btag = document.getElementById('badge-bike-tag');
+        if (bimg && currentBrand) bimg.src = currentBrand.shape;
+        if (btag) btag.textContent = '🚀 当前：' + (currentBrandName || '默认');
+    }
     updateShopStats();
+    updateMotoLabel();
     renderAchievements();
     // 🎥 炫酷摩托车视频：点一下打开，再点一下关闭！
     var motoVideoOpen = false;
@@ -1603,12 +1687,12 @@
         var ctx = canvas.getContext('2d');
         var W = canvas.width, H = canvas.height;
         var mouse = { x: -999, y: -999 };
-        var MR = 14;   // 🖱️ 鼠标控制的小手更小、更精准
+        var MR = 8;    // 🖱️ 鼠标圈缩小到基本被鼠标指针遮住！
         var COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#b980f0', '#ff8e3c', '#ff5da2', '#4dd0e1'];
         var balls = [];
 
         function makeBall() {
-            var r = 7 + Math.random() * 6;
+            var r = 11 + Math.random() * 10;   // 🎱 框缩小后球半径按比例加大，显示出来和原来一样大！
             var c = COLORS[Math.floor(Math.random() * COLORS.length)];
             // 🖼️ 预渲染小球贴图（画一次存好，每帧直接贴，超流畅！）
             var spr = document.createElement('canvas');
@@ -1630,10 +1714,13 @@
                 vy: (Math.random() - 0.5) * 3,
                 r: r,
                 c: c,
-                sprite: spr
+                sprite: spr,
+                held: false,        // 🧍 被火柴人举着
+                thrown: 0,          // 刚被扔出来（几帧内能砸倒火柴人）
+                fromStick: -1       // 谁扔的
             };
         }
-        for (var i = 0; i < 150; i++) balls.push(makeBall());   // 🎱 小球数量增加非常多！
+        for (var i = 0; i < 220; i++) balls.push(makeBall());   // 🎱 小球数量非常多！
 
         // 🎛️ 玩家可以自己调小球数量（滑块）！
         var countInput = document.getElementById('ball-count');
@@ -1645,6 +1732,83 @@
         }
         countInput.addEventListener('input', function () {
             setBallCount(parseInt(countInput.value, 10) || 10);
+        });
+
+        // 🧍 火柴人：在碗里散步玩耍！（数量可调，0 = 不要）
+        var sticks = [];
+        function makeStick() {
+            return {
+                x: 40 + Math.random() * (W - 80),
+                y: H - 20,                        // 🦶 站在地面！
+                vx: 0, vy: 0,
+                w: Math.random() * 6.28,          // 走路动画相位
+                face: Math.random() < 0.5 ? 1 : -1, // 面朝左/右
+                size: 0.9 + Math.random() * 0.4,  // 大小（高矮）
+                mode: 'walk',                     // walk 散步 / carry 去捡球
+                carryBall: -1,                    // 拿着的球
+                holdT: 0,                         // 举起球的时间
+                throwCd: 80 + Math.random() * 100, // 多久砸一次球
+                react: 0,                         // 被砸中倒地帧数
+                shirt: COLORS[Math.floor(Math.random() * COLORS.length)],  // 👕 衣服颜色
+                num: 1 + Math.floor(Math.random() * 20)                    // 🎽 球衣号码
+            };
+        }
+        var stickInput = document.getElementById('stick-count');
+        var stickLabel = document.getElementById('stick-count-label');
+        function setStickCount(n) {
+            // 🙌 先释放所有被火柴人举着的球（不然关掉火柴人球会浮空！）
+            for (var ri = 0; ri < balls.length; ri++) {
+                if (balls[ri].held) { balls[ri].held = false; balls[ri].thrown = 0; balls[ri].fromStick = -1; }
+            }
+            while (sticks.length < n) {
+                var ns2 = makeStick();
+                if (soccerMode) {
+                    // ⚽ 新火柴人补到人少的那队（保持均衡），老队员队伍不变！
+                    var c0 = 0, c1 = 0;
+                    for (var tc = 0; tc < sticks.length; tc++) {
+                        if (sticks[tc].team === 0) c0++; else if (sticks[tc].team === 1) c1++;
+                    }
+                    ns2.team = c0 <= c1 ? 0 : 1;
+                    ns2.shirt = ns2.team === 0 ? '#ff6b6b' : '#4d96ff';
+                    ns2.num = (ns2.team === 0 ? c0 : c1) + 1;
+                }
+                sticks.push(ns2);
+            }
+            if (sticks.length > n) sticks.length = n;
+            // 减少火柴人后：重算守门员（队伍不变！）
+            if (soccerMode) {
+                var gi0b = -1, gd0b = 1e9, gi1b = -1, gd1b = 1e9;
+                for (var gib = 0; gib < sticks.length; gib++) {
+                    var gsb = sticks[gib];
+                    var dLb = gsb.x, dRb = W - gsb.x;
+                    if (gsb.team === 0 && dLb < gd0b) { gd0b = dLb; gi0b = gib; }
+                    if (gsb.team === 1 && dRb < gd1b) { gd1b = dRb; gi1b = gib; }
+                }
+                for (var gib2 = 0; gib2 < sticks.length; gib2++) {
+                    sticks[gib2].goalie = (gib2 === gi0b || gib2 === gi1b);
+                }
+            }
+            stickLabel.textContent = n;
+        }
+        stickInput.addEventListener('input', function () {
+            setStickCount(parseInt(stickInput.value, 10) || 0);
+        });
+        setStickCount(4);
+
+        // ⚽ 足球模式：加球门，火柴人分两队射门/守门！
+        var soccerMode = false;
+        var scores = [0, 0];
+        var goalFlash = 0;
+        var flashText = '';
+        var goalCY = H * 0.74;   // 🥅 球门再往下一点！
+        var teamsSet = false;   // ⚽ 队伍只分一次，之后不再变！
+        var soccerBtn = document.getElementById('soccer-btn');
+        soccerBtn.addEventListener('click', function () {
+            soccerMode = !soccerMode;
+            scores = [0, 0];
+            goalFlash = 0;
+            teamsSet = false;   // 重新均衡分队！
+            soccerBtn.textContent = soccerMode ? '❌ 关闭球门' : '⚽ 加球门（足球模式）';
         });
 
         // 🖱️ 鼠标位置（换算到画布坐标）
@@ -1660,6 +1824,7 @@
             var t = Date.now();
             for (var i = 0; i < balls.length; i++) {
                 var b = balls[i];
+                if (b.held) continue;             // 🧍 被火柴人举着：不参与物理
                 // 🎵 持续能量：每颗球轻轻流动（永动！但幅度小，顺滑不抽搐）
                 b.vx += Math.sin((t + i * 37) / 420) * 0.06;
                 b.vy += Math.cos((t + i * 53) / 380) * 0.03;
@@ -1671,9 +1836,14 @@
                 var spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
                 if (spd > 7) { b.vx = b.vx / spd * 7; b.vy = b.vy / spd * 7; }
 
-                // ⬜ 画布四边：撞边反弹（顺滑）
-                if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.85; }
-                if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.85; }
+                // ⬜ 画布四边：撞边反弹（足球模式：球门口的球能滚进门！）
+                var atGoalMouth = soccerMode && Math.abs(b.y - goalCY) < 60;
+                if (!(atGoalMouth && b.x < 30) && b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.85; }
+                if (!(atGoalMouth && b.x > W - 30) && b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.85; }
+                if (atGoalMouth) {   // 🥅 进门区域：别飞出画布
+                    if (b.x < 0) { b.x = 0; b.vx = Math.abs(b.vx) * 0.3; }
+                    if (b.x > W) { b.x = W; b.vx = -Math.abs(b.vx) * 0.3; }
+                }
                 if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.85; }
                 if (b.y + b.r > H) { b.y = H - b.r; b.vy = -Math.abs(b.vy) * 0.85; }
 
@@ -1686,6 +1856,17 @@
                     b.y = mouse.y + mny * (MR + b.r);
                     b.vx += mnx * 5;
                     b.vy += mny * 5;
+                }
+                // 🏐 刚被扔出的球：砸到火柴人就把他放倒！
+                if (b.thrown > 0) {
+                    b.thrown--;
+                    for (var sti = 0; sti < sticks.length; sti++) {
+                        var st = sticks[sti];
+                        if (st.react > 0 || sti === b.fromStick) continue;
+                        if (soccerMode && st.goalie) continue;   // ⚽ 守门员不被砸倒，负责扑救！
+                        var hx = b.x - st.x, hy = b.y - st.y;
+                        if (hx * hx + hy * hy < 14 * 14) { st.react = 25; b.thrown = 0; break; }
+                    }
                 }
             }
             // ⚪ 球与球：稳定碰撞（每帧最多推2px，弹力0.5，防抽搐）
@@ -1716,6 +1897,199 @@
                     }
                 }
             }
+
+            // ⚽ 进球检测：球滚进球门就得分！
+            if (soccerMode) {
+                for (var scI = 0; scI < balls.length; scI++) {
+                    var scb = balls[scI];
+                    if (scb.held) continue;
+                    if (scb.x < 4 && Math.abs(scb.y - goalCY) < 60) {
+                        scores[1]++; goalFlash = 70; flashText = '⚽ GOAL！右队得分！';
+                        scb.x = W / 2; scb.y = goalCY - 50; scb.vx = 0; scb.vy = 0; scb.thrown = 0;
+                    } else if (scb.x > W - 4 && Math.abs(scb.y - goalCY) < 60) {
+                        scores[0]++; goalFlash = 70; flashText = '⚽ GOAL！左队得分！';
+                        scb.x = W / 2; scb.y = goalCY - 50; scb.vx = 0; scb.vy = 0; scb.thrown = 0;
+                    }
+                }
+            }
+
+            // ⚽ 足球模式：只分一次队（数量均衡），之后跑到哪都不变！
+            if (soccerMode && !teamsSet) {
+                teamsSet = true;
+                var t0 = 0, t1 = 0;
+                var gi0 = -1, gd0 = 1e9, gi1 = -1, gd1 = 1e9;
+                for (var gi = 0; gi < sticks.length; gi++) {
+                    var gs = sticks[gi];
+                    // 均衡分队：哪队人少补哪队（保证两队人数差不多！）
+                    if (t0 <= t1) { gs.team = 0; t0++; } else { gs.team = 1; t1++; }
+                    gs.shirt = gs.team === 0 ? '#ff6b6b' : '#4d96ff';   // 👕 红队 / 蓝队！
+                    gs.num = gs.team === 0 ? t0 : t1;                   // 🎽 队内号码 1,2,3...
+                    var dL = gs.x, dR = W - gs.x;
+                    if (gs.team === 0 && dL < gd0) { gd0 = dL; gi0 = gi; }   // 离左门最近 → 红队守门员
+                    if (gs.team === 1 && dR < gd1) { gd1 = dR; gi1 = gi; }   // 离右门最近 → 蓝队守门员
+                }
+                for (var gi2 = 0; gi2 < sticks.length; gi2++) {
+                    sticks[gi2].goalie = (gi2 === gi0 || gi2 === gi1);
+                }
+            }
+
+            // 🧍 火柴人：站在地上玩球！（足球模式：射门/守门！）
+            for (var si = 0; si < sticks.length; si++) {
+                var s = sticks[si];
+                if (s.react > 0) {                            // 被砸倒：躺一会儿，扔下手里的球
+                    s.react--;
+                    if (s.carryBall >= 0 && balls[s.carryBall]) {
+                        balls[s.carryBall].held = false;
+                        balls[s.carryBall].fromStick = -1;
+                        s.carryBall = -1;
+                    }
+                    continue;
+                }
+                // 🌍 重力：站地上，不会飞！
+                s.vy += 0.4;
+                s.y += s.vy;
+                if (s.y > H - 12) { s.y = H - 12; s.vy = 0; }
+
+                // ⚽ 守门员：守在自家球门前，追球扑救！
+                if (soccerMode && s.goalie) {
+                    // 🧤 守门员只能在自家球门这一侧自由移动！（左门员只在左侧区域）
+                    var gMinX = s.team === 0 ? 2 : W - 46;
+                    var gMaxX = s.team === 0 ? 46 : W - 2;
+                    var nbX = W / 2, nbY = goalCY, nbD = 1e9;
+                    for (var gk = 0; gk < balls.length; gk++) {
+                        if (balls[gk].held) continue;
+                        var gkk = Math.abs(balls[gk].x - s.x) + Math.abs(balls[gk].y - s.y);
+                        if (gkk < nbD) { nbD = gkk; nbX = balls[gk].x; nbY = balls[gk].y; }
+                    }
+                    s.x += (nbX - s.x) * 0.12;   // 🆓 在自家区域自由移动
+                    s.y += (nbY - s.y) * 0.12;
+                    s.x = Math.max(gMinX, Math.min(gMaxX, s.x));
+                    s.y = Math.max(goalCY - 58, Math.min(goalCY + 58, s.y));
+                    s.w += 0.15;
+                    // 🧤 扑救！把到门前的球踢回场里！
+                    for (var gk2 = 0; gk2 < balls.length; gk2++) {
+                        var gb2 = balls[gk2];
+                        if (gb2.held) continue;
+                        var gd2 = Math.sqrt((gb2.x - s.x) * (gb2.x - s.x) + (gb2.y - s.y) * (gb2.y - s.y));
+                        if (gd2 < 20) {
+                            gb2.vx = (s.team === 0 ? 1 : -1) * 6;
+                            gb2.vy = (H / 2 - gb2.y) * 0.12;
+                            if (gb2.thrown > 0) { goalFlash = 45; flashText = '🧤 守门员扑救！'; }
+                            gb2.thrown = 0;
+                        }
+                    }
+                    continue;
+                }
+
+                if (s.mode === 'walk') {
+                    if (soccerMode) s.throwCd -= 2; else s.throwCd--;   // ⚽ 进攻队员更勤快！
+                    if (soccerMode) {
+                        // ⚽ 聪明点：主动朝最近的球跑！（不再乱走，去抢球！）
+                        var ballX2 = s.face > 0 ? W : 0, bdX = 1e9;
+                        for (var bk4 = 0; bk4 < balls.length; bk4++) {
+                            if (balls[bk4].held) continue;
+                            var ddx4 = Math.abs(balls[bk4].x - s.x);
+                            if (ddx4 < bdX) { bdX = ddx4; ballX2 = balls[bk4].x; }
+                        }
+                        s.face = ballX2 > s.x ? 1 : -1;
+                        s.x += s.face * 1.1;
+                        s.w += 0.15;
+                    } else {
+                        if (Math.random() < 0.006) s.face = -s.face;   // 偶尔换方向
+                        s.x += s.face * 0.8;
+                        s.w += 0.12;                                   // 走路摆腿
+                    }
+                    if (s.x < 14) { s.x = 14; s.face = 1; }
+                    if (s.x > W - 14) { s.x = W - 14; s.face = -1; }
+                    // 🏐 想拿球了：去找最近的一个小球！（每个火柴人都可以拿！）
+                    if (s.throwCd <= 0) {
+                        var nb2 = -1, nd2 = 1e9;
+                        for (var k3 = 0; k3 < balls.length; k3++) {
+                            if (balls[k3].held) continue;
+                            var d3 = Math.abs(balls[k3].x - s.x);
+                            if (d3 < nd2) { nd2 = d3; nb2 = k3; }
+                        }
+                        if (nb2 >= 0) { s.mode = 'carry'; s.carryBall = nb2; }
+                    }
+                } else if (s.mode === 'carry') {
+                    var cb2 = balls[s.carryBall];
+                    if (!cb2) { s.mode = 'walk'; s.carryBall = -1; }
+                    else if (cb2.held) {
+                        // 举着球，瞄准后扔出去！
+                        s.holdT--;
+                        s.w += 0.08;
+                        if (s.holdT <= 0) {
+                            var a3, sp3 = 6 + Math.random() * 2;
+                            if (soccerMode) {
+                                // ⚽ 扔向对面的球门！
+                                var goalX = s.team === 0 ? W : 0;
+                                var goalY = goalCY + (Math.random() * 90 - 45);
+                                a3 = Math.atan2(goalY - s.y, goalX - s.x);
+                            } else {
+                                // 🏐 扔向最近的另一个火柴人
+                                var tgt2 = -1, td2 = 1e9;
+                                for (var t3 = 0; t3 < sticks.length; t3++) {
+                                    if (t3 === si || sticks[t3].react > 0) continue;
+                                    var tdd2 = Math.abs(sticks[t3].x - s.x);
+                                    if (tdd2 < td2) { td2 = tdd2; tgt2 = t3; }
+                                }
+                                a3 = (tgt2 >= 0) ? Math.atan2(sticks[tgt2].y - s.y - 20, sticks[tgt2].x - s.x) : (s.face > 0 ? 0 : Math.PI);
+                            }
+                            cb2.vx = Math.cos(a3) * sp3;
+                            cb2.vy = Math.sin(a3) * sp3 - 3;   // 抛个抛物线！
+                            cb2.thrown = 14;
+                            cb2.fromStick = si;
+                            cb2.held = false;
+                            s.carryBall = -1;
+                            s.mode = 'walk';
+                            s.throwCd = soccerMode ? 60 + Math.random() * 60 : 100 + Math.random() * 120;
+                            s.w = Math.PI;   // 甩臂
+                        }
+                    } else {
+                        // 走向小球去捡
+                        var dx3 = cb2.x - s.x;
+                        s.face = dx3 > 0 ? 1 : -1;
+                        s.x += s.face * 1.2;
+                        s.w += 0.18;
+                        var cbd3 = Math.sqrt((cb2.x - s.x) * (cb2.x - s.x) + (cb2.y - s.y) * (cb2.y - s.y));
+                        if (cbd3 < 30) {
+                            cb2.held = true;
+                            cb2.vx = 0; cb2.vy = 0;
+                            s.holdT = 30;   // 举起来，瞄准一下
+                        }
+                    }
+                }
+
+                // 🖱️ 鼠标推开火柴人
+                var sdx = s.x - mouse.x, sdy = s.y - mouse.y;
+                var sd = Math.sqrt(sdx * sdx + sdy * sdy);
+                if (sd < MR + 14 && sd > 0.001) {
+                    s.x += sdx / sd * 2; s.y += sdy / sd * 2;
+                }
+                // ⚪ 小球碰到火柴人：火柴人被推走，小球也轻轻弹开（举着的球不碰）
+                for (var sk = 0; sk < balls.length; sk++) {
+                    var bk = balls[sk];
+                    if (bk.held) continue;
+                    var bdx = s.x - bk.x, bdy = s.y - bk.y;
+                    var bd = Math.sqrt(bdx * bdx + bdy * bdy);
+                    var minD = bk.r + 11 * s.size;
+                    if (bd < minD && bd > 0.001) {
+                        var nx2 = bdx / bd, ny2 = bdy / bd;
+                        var ov2 = (minD - bd) * 0.5;
+                        s.x += nx2 * ov2; s.y += ny2 * ov2;
+                        bk.x -= nx2 * ov2 * 0.7; bk.y -= ny2 * ov2 * 0.7;
+                    }
+                }
+            }
+            // 🧍 举着的球：两只手举过头顶，轻轻颠一颠再扔！
+            for (var hi = 0; hi < sticks.length; hi++) {
+                var hs = sticks[hi];
+                if (hs.mode === 'carry' && hs.carryBall >= 0 && balls[hs.carryBall] && balls[hs.carryBall].held) {
+                    var hb = balls[hs.carryBall];
+                    hb.x = hs.x;                                            // 🙌 头顶正上方
+                    hb.y = hs.y - 27 * hs.size - Math.sin(hs.w * 2) * 2;    // 轻轻颠一颠
+                }
+            }
         }
 
         function draw() {
@@ -1724,6 +2098,98 @@
             for (var i = 0; i < balls.length; i++) {
                 var b = balls[i];
                 ctx.drawImage(b.sprite, b.x - b.sprite.width / 2, b.y - b.sprite.height / 2);
+            }
+            // 🧍 画火柴人（走路摆腿 + 被砸躺地！）
+            for (var si = 0; si < sticks.length; si++) {
+                var s = sticks[si];
+                var sz = s.size;
+                if (s.react > 0) {
+                    // 💫 被砸倒：躺在地上（横着，脚在左头在右）
+                    ctx.beginPath();
+                    ctx.arc(s.x + 12 * sz, s.y - 4 * sz, 3.2 * sz, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    ctx.lineWidth = 2 * sz;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(s.x - 4 * sz, s.y);            // 脚
+                    ctx.lineTo(s.x + 6 * sz, s.y - 3 * sz);  // 身体
+                    ctx.lineTo(s.x + 12 * sz, s.y - 4 * sz); // 头
+                    ctx.moveTo(s.x + 2 * sz, s.y - 2 * sz); ctx.lineTo(s.x + 8 * sz, s.y + 2 * sz);  // 手
+                    ctx.moveTo(s.x, s.y - 1 * sz); ctx.lineTo(s.x - 3 * sz, s.y + 4 * sz);          // 腿
+                    ctx.stroke();
+                } else {
+                    var legA = Math.sin(s.w) * 5 * sz;          // 腿摆动
+                    var armA = Math.sin(s.w + Math.PI) * 4 * sz; // 手臂反着摆
+                    // 头
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y - 16 * sz, 3.2 * sz, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    ctx.fill();
+                    // 👕 衣服：彩色身体（粗一点，好区分！）
+                    ctx.strokeStyle = s.shirt || 'rgba(255,255,255,0.95)';
+                    ctx.lineWidth = 5 * sz;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(s.x, s.y - 12 * sz); ctx.lineTo(s.x, s.y + 1 * sz);
+                    ctx.stroke();
+                    // 🎽 球衣号码（胸前）
+                    if (s.num) {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold ' + Math.round(8 * sz) + 'px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(s.num, s.x, s.y - 1 * sz);
+                    }
+                    // 手脚（白色细线）
+                    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    ctx.lineWidth = 2 * sz;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    if (s.mode === 'carry' && s.carryBall >= 0 && balls[s.carryBall] && balls[s.carryBall].held) {
+                        // 🙌 两只手高高举起球！（拿球时不摆臂）
+                        ctx.moveTo(s.x, s.y - 10 * sz); ctx.lineTo(s.x, s.y - 25 * sz);
+                        ctx.moveTo(s.x, s.y - 10 * sz); ctx.lineTo(s.x, s.y - 25 * sz);
+                    } else {
+                        ctx.moveTo(s.x, s.y - 10 * sz); ctx.lineTo(s.x + armA, s.y - 2 * sz);   // 左臂
+                        ctx.moveTo(s.x, s.y - 10 * sz); ctx.lineTo(s.x - armA, s.y - 2 * sz);   // 右臂
+                    }
+                    ctx.moveTo(s.x, s.y + 2 * sz);  ctx.lineTo(s.x + legA, s.y + 11 * sz);  // 左腿
+                    ctx.moveTo(s.x, s.y + 2 * sz);  ctx.lineTo(s.x - legA, s.y + 11 * sz);  // 右腿
+                    ctx.stroke();
+                }
+            }
+            // ⚽ 画球门 + 比分 + 进球提示！
+            if (soccerMode) {
+                var goalHalf = 60;
+                function drawGoal(gx) {
+                    var dir = gx < W / 2 ? 1 : -1;   // 门口朝场中间
+                    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, goalCY - goalHalf); ctx.lineTo(gx, goalCY + goalHalf);       // 底线
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(gx + dir * 5, goalCY - goalHalf); ctx.lineTo(gx + dir * 5, goalCY + goalHalf);   // 门柱
+                    ctx.stroke();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';   // 网
+                    ctx.lineWidth = 1;
+                    for (var gy2 = goalCY - goalHalf + 8; gy2 < goalCY + goalHalf; gy2 += 10) {
+                        ctx.beginPath(); ctx.moveTo(gx, gy2); ctx.lineTo(gx + dir * 5, gy2); ctx.stroke();
+                    }
+                }
+                drawGoal(2);
+                drawGoal(W - 7);
+                ctx.fillStyle = '#ffd93d';
+                ctx.font = 'bold 15px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚽ 左队 ' + scores[0] + ' : ' + scores[1] + ' 右队', W / 2, 20);
+                if (goalFlash > 0) {
+                    goalFlash--;
+                    ctx.font = 'bold 22px sans-serif';
+                    ctx.fillStyle = 'rgba(255, 217, 61, ' + Math.min(1, goalFlash / 24) + ')';
+                    ctx.fillText(flashText, W / 2, H / 2 - 46);
+                }
             }
             // 🖱️ 画鼠标碰撞箱
             if (mouse.x > -100) {

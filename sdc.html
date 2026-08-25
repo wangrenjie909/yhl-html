@@ -343,10 +343,31 @@
 
     // 每栋楼的墙面（底部留门）
     var wallRects = [];
+    // 🏠 随机生成房子：位置、大小每次都随机！避开出生点和撤离点，房子之间不重叠
+    function genBuildings(n, ex, ey) {
+        var list = [];
+        var tries = 0;
+        while (list.length < n && tries < 500) {
+            tries++;
+            var w = 150 + Math.random() * 130;
+            var h = 130 + Math.random() * 80;
+            var x = 120 + Math.random() * Math.max(10, MAPW - 240 - w);
+            var y = 120 + Math.random() * Math.max(10, MAPH - 240 - h);
+            if (Math.abs(x + w / 2 - 200) < 230 && Math.abs(y + h / 2 - 200) < 230) continue;   // 避开出生点
+            if (x < ex + 190 && x + w > ex - 190 && y < ey + 190 && y + h > ey - 190) continue; // 避开撤离点
+            var ok = true;
+            for (var j = 0; j < list.length; j++) {
+                var b2 = list[j];
+                if (x < b2.x + b2.w + 44 && x + w > b2.x - 44 && y < b2.y + b2.h + 44 && y + h > b2.y - 44) { ok = false; break; }
+            }
+            if (ok) list.push({ x: x, y: y, w: w, h: h });
+        }
+        return list;
+    }
     function setupMap() {
         MAPW = currentMap.W; MAPH = currentMap.H;
-        buildings = currentMap.buildings;
         extract = currentMap.extract;
+        buildings = genBuildings(currentMap === MAPS.city ? 14 : 15, extract.x, extract.y);   // 🎲 每次随机！
         wallRects = [];
         for (var i = 0; i < buildings.length; i++) {
             var b = buildings[i];
@@ -357,8 +378,88 @@
             wallRects.push({ x: b.x, y: b.y, w: T, h: b.h, b: i });
             wallRects.push({ x: b.x + b.w - T, y: b.y, w: T, h: b.h, b: i });
         }
+        buildPathGrid();   // 🗺️ 生成小怪的寻路路线！
     }
     setupMap();
+
+    // 🗺️ 小怪寻路：把地图切成小格子，墙占的格子不能走，门洞挖通（对准门中心）
+    var GRID = 30;
+    var pathGrid = [];
+    var doorSnap = {};   // "r,c" -> 门的中心x（走门洞时对准门中心）
+    function buildPathGrid() {
+        var cols = Math.ceil(MAPW / GRID), rows = Math.ceil(MAPH / GRID);
+        pathGrid = [];
+        doorSnap = {};
+        for (var r = 0; r < rows; r++) { var row = []; for (var c = 0; c < cols; c++) row.push(0); pathGrid.push(row); }
+        for (var i = 0; i < wallRects.length; i++) {   // 墙 + 小怪身子（半径22）占的格子不能走
+            var w = wallRects[i];
+            var x0 = Math.max(0, Math.floor((w.x - 22) / GRID)), x1 = Math.min(cols - 1, Math.floor((w.x + w.w + 22) / GRID));
+            var y0 = Math.max(0, Math.floor((w.y - 22) / GRID)), y1 = Math.min(rows - 1, Math.floor((w.y + w.h + 22) / GRID));
+            for (var r2 = y0; r2 <= y1; r2++) for (var c2 = x0; c2 <= x1; c2++) pathGrid[r2][c2] = 1;
+        }
+        for (var i2 = 0; i2 < buildings.length; i2++) {   // 挖门洞：门口留一条通道！
+            var b = buildings[i2];
+            var dcx = b.x + b.w / 2, dcy = b.y + b.h;
+            var c0 = Math.max(0, Math.floor((dcx - 34) / GRID)), c1 = Math.min(cols - 1, Math.floor((dcx + 34) / GRID));
+            var r0 = Math.max(0, Math.floor((dcy - 60) / GRID)), r1 = Math.min(rows - 1, Math.floor((dcy + 60) / GRID));
+            for (var r3 = r0; r3 <= r1; r3++) {
+                for (var c3 = c0; c3 <= c1; c3++) {
+                    pathGrid[r3][c3] = 0;
+                    doorSnap[r3 + ',' + c3] = dcx;
+                }
+            }
+        }
+    }
+    // 🗺️ 找离 (c,r) 最近的能走的格子（起点/终点卡在墙边也能找到路！）
+    function nearestOpen(c, r) {
+        var cols = pathGrid[0].length, rows = pathGrid.length;
+        if (r >= 0 && r < rows && c >= 0 && c < cols && !pathGrid[r][c]) return { c: c, r: r };
+        for (var rad = 1; rad < 9; rad++) {
+            for (var dr = -rad; dr <= rad; dr++) {
+                for (var dc = -rad; dc <= rad; dc++) {
+                    if (Math.abs(dr) !== rad && Math.abs(dc) !== rad) continue;
+                    var nr = r + dr, nc = c + dc;
+                    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                    if (!pathGrid[nr][nc]) return { c: nc, r: nr };
+                }
+            }
+        }
+        return { c: c, r: r };
+    }
+    // 🗺️ BFS 找路：返回世界坐标路线点（走门洞时自动对准门中心）
+    function findPath(sx, sy, tx, ty) {
+        var cols = pathGrid[0].length, rows = pathGrid.length;
+        var sc = Math.max(0, Math.min(cols - 1, Math.floor(sx / GRID)));
+        var sr = Math.max(0, Math.min(rows - 1, Math.floor(sy / GRID)));
+        var tc = Math.max(0, Math.min(cols - 1, Math.floor(tx / GRID)));
+        var tr = Math.max(0, Math.min(rows - 1, Math.floor(ty / GRID)));
+        var s0 = nearestOpen(sc, sr), t0 = nearestOpen(tc, tr);   // 卡墙也找得到路！
+        sc = s0.c; sr = s0.r; tc = t0.c; tr = t0.r;
+        var prev = new Int32Array(rows * cols).fill(-2);
+        var q = [sr * cols + sc];
+        prev[sr * cols + sc] = -1;
+        var found = false;
+        while (q.length) {
+            var cur = q.shift();
+            var cr = Math.floor(cur / cols), cc = cur % cols;
+            if (cr === tr && cc === tc) { found = true; break; }
+            if (cr > 0 && prev[(cr - 1) * cols + cc] === -2 && !pathGrid[cr - 1][cc]) { prev[(cr - 1) * cols + cc] = cur; q.push((cr - 1) * cols + cc); }
+            if (cr < rows - 1 && prev[(cr + 1) * cols + cc] === -2 && !pathGrid[cr + 1][cc]) { prev[(cr + 1) * cols + cc] = cur; q.push((cr + 1) * cols + cc); }
+            if (cc > 0 && prev[cr * cols + cc - 1] === -2 && !pathGrid[cr][cc - 1]) { prev[cr * cols + cc - 1] = cur; q.push(cr * cols + cc - 1); }
+            if (cc < cols - 1 && prev[cr * cols + cc + 1] === -2 && !pathGrid[cr][cc + 1]) { prev[cr * cols + cc + 1] = cur; q.push(cr * cols + cc + 1); }
+        }
+        if (!found) return null;
+        var pts = [];
+        var cur2 = tr * cols + tc;
+        while (cur2 !== -1) {
+            var rr = Math.floor(cur2 / cols), cc2 = cur2 % cols;
+            var snapX = doorSnap[rr + ',' + cc2];
+            pts.push({ x: (snapX !== undefined ? snapX : cc2 * GRID + GRID / 2), y: rr * GRID + GRID / 2 });
+            cur2 = prev[cur2];
+        }
+        pts.reverse();
+        return pts;
+    }
 
     function rectHit(px, py, rad) {
         for (var i = 0; i < wallRects.length; i++) {
@@ -511,6 +612,14 @@
             }
         }
         return false;
+    }
+    // 🏠 这个点在哪栋楼里？（-1 = 露天）
+    function buildingAt(x, y) {
+        for (var i = 0; i < buildings.length; i++) {
+            var b = buildings[i];
+            if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) return i;
+        }
+        return -1;
     }
 
     var player = { x: 200, y: 200, hp: 100, dir: 0, atkCd: 0, hitCd: 0, bullets: 30, weapons: ['pistol', null], weaponSlot: 0, floor: 1, bIdx: -1, tIdx: -1, inB: -1 };
@@ -739,12 +848,12 @@
     // 🔫 玩家手里的真实枪（按号型选图！）
     function playerGunVisual() {
         var cw = currentWeapon();
-        if (cw === 'rpg' && imgOk(imgRpg)) return { img: imgRpg, w: 40, h: 40 };            // RPG
+        if (cw === 'rpg' && imgOk(imgRpg)) return { img: imgRpg, w: 46, h: 13 };   // 🚀 RPG-7 真实图片（枪口朝右）            // 🚀 RPG-7 侧视图（枪口朝右）
         if (cw === 'sniper' && imgOk(imgSniper)) return { img: imgSniper, w: 52, h: 21 };    // 🎯 AWM 真实照片
         if (cw === 'smg' && imgOk(imgUzi)) return { img: imgUzi, w: 40, h: 22 };            // UZI 真实照片
         if (cw === 'gatling' && imgOk(imgM134)) return { img: imgM134, w: 46, h: 16 };      // ⚙️ PKM 通用机枪
         if (cw === 'laser' && imgOk(imgLaser)) return { img: imgLaser, w: 46, h: 14 };      // 激光枪
-        if (cw === 'shotgun' && imgOk(imgShotgun)) return { img: imgShotgun, w: 46, h: 15 };  // 💥 S12K 侧视图  // 💥 S12K 霰弹枪！
+        if (cw === 'shotgun' && imgOk(imgShotgun)) return { img: imgShotgun, w: 46, h: 17 };   // 💥 真实 S12K 照片（S12K 原型 Saiga-12K）   // 💥 真实霰弹枪照片  // 💥 S12K 侧视图  // 💥 S12K 霰弹枪！
         if (imgOk(imgRifle)) return { img: imgRifle, w: 42, h: 20 };                        // AKM 及其他
         if (imgOk(imgPistol)) return { img: imgPistol, w: 38, h: 28 };                      // 沙漠之鹰
         return null;
@@ -1406,9 +1515,39 @@
             var d = Math.sqrt((e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y));
             var es = (e.ranged ? 100 : 130) * dt;
             var mx = 0, my = 0;
+            var ox = e.x, oy = e.y;   // 记录移动前位置（判断有没有卡住）
             var sameFloor = (player.floor === e.floor);
+            var ebi = buildingAt(e.x, e.y);   // 🏠 小怪现在在哪栋楼里（-1 = 露天）
             var los = sameFloor && hasLOS(e.x, e.y, player.x, player.y);
-            if (player.floor === 2 && player.bIdx >= 0 && e.floor === 1) {
+            // 🧱 小怪不在玩家这栋楼里，就不能隔着墙/门打到你！（进屋才算数）
+            if (los && e.floor === 1 && player.floor === 1 && ebi !== player.inB) los = false;
+            // ⭕ 隔着决斗场的墙：场外的小怪打不到场里的你！
+            if (los && arena && e.floor === 1 && player.floor === 1) {
+                var eInA2 = Math.sqrt((e.x - arena.x) * (e.x - arena.x) + (e.y - arena.y) * (e.y - arena.y)) < arena.r;
+                var pInA2 = Math.sqrt((player.x - arena.x) * (player.x - arena.x) + (player.y - arena.y) * (player.y - arena.y)) < arena.r;
+                if (eInA2 !== pInA2) los = false;
+            }
+            if (player.floor === 1 && e.floor === 1 && !los) {
+                // 🗺️ 直线被墙挡住：走预生成的小怪路线（绕开墙、从门进出，绝不卡门撞墙）！
+                if (!e.path || e.pathT <= 0 || Math.abs(e.targetX - player.x) + Math.abs(e.targetY - player.y) > 220) {
+                    e.path = findPath(e.x, e.y, player.x, player.y);
+                    e.wp = 0;
+                    e.pathT = 0.6;
+                    e.targetX = player.x; e.targetY = player.y;
+                }
+                e.pathT -= dt;
+                if (e.path && e.wp < e.path.length) {
+                    var wpt = e.path[e.wp];
+                    var wdx = wpt.x - e.x, wdy = wpt.y - e.y;
+                    var wd = Math.sqrt(wdx * wdx + wdy * wdy);
+                    if (wd < 24) { e.wp++; }
+                    else { mx = wdx / wd * es; my = wdy / wd * es; }
+                } else {
+                    if (e.path && e.wp >= e.path.length) e.pathT = 0;   // 走到头了：马上重新找路
+                    mx = (player.x - e.x) / d * es;
+                    my = (player.y - e.y) / d * es;
+                }
+            } else if (player.floor === 2 && player.bIdx >= 0 && e.floor === 1) {
                 // 🪜 敌人要爬到玩家的 2 楼！（靠近房子就爬上去）
                 var sb = buildings[player.bIdx];
                 if (sb.has2) {
@@ -1487,6 +1626,24 @@
             }
             e.x = Math.max(20, Math.min(MAPW - 20, e.x));
             e.y = Math.max(20, Math.min(MAPH - 20, e.y));
+            // 🧱 卡住了？（想走但没动）：乱走一小段脱身，再重新找路！（绕路）
+            var moved = Math.abs(e.x - ox) + Math.abs(e.y - oy);
+            if (moved < 0.6 && e.floor === 1 && player.floor === 1) {
+                if (e.path) e.pathT = 0;
+                if (!e.exploreT || e.exploreT <= 0) {
+                    e.exploreT = 0.35 + Math.random() * 0.35;
+                    e.exploreA = Math.random() * Math.PI * 2;   // 🧭 随机方向乱走脱身
+                }
+            } else {
+                e.exploreT = 0;
+            }
+            if (e.exploreT > 0) {
+                e.exploreT -= dt;
+                var exx = Math.cos(e.exploreA) * es * 0.8;
+                var eyy = Math.sin(e.exploreA) * es * 0.8;
+                if (!rectHit(e.x + exx, e.y, 18) && !arenaNoEntry(e.x + exx, e.y, 18)) e.x += exx;
+                if (!rectHit(e.x, e.y + eyy, 18) && !arenaNoEntry(e.x, e.y + eyy, 18)) e.y += eyy;
+            }
             // 🙅 小怪不能和你重叠（同层推到身边 42px，不再穿过你）
             var cd = Math.sqrt((e.x - player.x) * (e.x - player.x) + (e.y - player.y) * (e.y - player.y));
             if (sameFloor && cd < 42 && cd > 0.001) {
@@ -1615,7 +1772,7 @@
                     if (ddx * ddx + ddy * ddy < 16) return true;
                 }
                 return false;
-            })() : rectHit(sh.x, sh.y, 4);
+            })() : (rectHit(sh.x, sh.y, 4) || arenaHit(sh.x, sh.y, 4));   // ⭕ 决斗场墙也挡小怪的子弹！
             if (sh.life <= 0 || hitWall2) { enemyShots.splice(i, 1); continue; }
             var d2 = Math.sqrt((sh.x - player.x) * (sh.x - player.x) + (sh.y - player.y) * (sh.y - player.y));
             if (d2 < 22 && player.hitCd <= 0 && sh.f === player.floor) {   // 同一层才打得到！
@@ -1689,6 +1846,8 @@
         ctx.lineWidth = 1;
         for (var gx = 0; gx <= MAPW; gx += 100) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, MAPH); ctx.stroke(); }
         for (var gy = 0; gy <= MAPH; gy += 100) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(MAPW, gy); ctx.stroke(); }
+
+        // （小怪路线隐藏了：它们照走，但玩家看不见）
 
         // 🏢 房间（在外面只看到屋顶，进到里面才看到一楼）
         for (var i = 0; i < buildings.length; i++) {
@@ -2082,7 +2241,15 @@
             } else {
                 var gv = playerGunVisual();
                 if (gv) {
-                    ctx.drawImage(gv.img, 6, -gv.h / 2 - 7, gv.w, gv.h);   // 枪抬到胸前，不是用脚拿！
+                    if (cwg === 'rpg') {
+                        // 🚀 RPG 扛在肩上：斜挎着扛（不单手举着），体积更大！
+                        ctx.save();
+                        ctx.rotate(-0.4);   // 微斜，像扛在肩上
+                        ctx.drawImage(gv.img, -gv.w / 2 + 6, -gv.h - 10, gv.w + 20, gv.h + 12);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(gv.img, 6, -gv.h / 2 - 7, gv.w, gv.h);   // 枪抬到胸前，不是用脚拿！
+                    }
                 } else {
                     // 图片未加载：画布备用
                     if (cwg === 'sniper') { drawSniperAW(ctx, 0.9); }
