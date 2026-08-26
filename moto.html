@@ -1750,7 +1750,8 @@
                 throwCd: 80 + Math.random() * 100, // 多久砸一次球
                 react: 0,                         // 被砸中倒地帧数
                 shirt: COLORS[Math.floor(Math.random() * COLORS.length)],  // 👕 衣服颜色
-                num: 1 + Math.floor(Math.random() * 20)                    // 🎽 球衣号码
+                num: 1 + Math.floor(Math.random() * 20),                   // 🎽 球衣号码
+                spd: 0.7 + Math.random() * 0.8                             // 🏃 每个队员速度不同！
             };
         }
         var stickInput = document.getElementById('stick-count');
@@ -1800,8 +1801,34 @@
         var scores = [0, 0];
         var goalFlash = 0;
         var flashText = '';
-        var goalCY = H * 0.74;   // 🥅 球门再往下一点！
+        var goalCY = H - 22;    // 🥅 球门中心（贴着地面附近）
+        // 🥅 门高 = 守门员身高（守门员随机高矮，门和他一样高！）
+        function goalHalfFor(team) {
+            var g = goalieStick(team);
+            var sz = (g ? g.size : 1) * 0.72;
+            return Math.max(5, Math.round(13.5 * sz));
+        }
         var teamsSet = false;   // ⚽ 队伍只分一次，之后不再变！
+        // 🧤 守门员扑救率：两个守门员各自独立！（初始都 90%，各自递减，被进球重置）
+        function saveRateFrom(n) {
+            if (!n || n <= 1) return 0.9;                // 初始 90%
+            if (n === 2) return 0.8;
+            if (n === 3) return 0.7;
+            if (n <= 9) return 0.7 - (n - 3) * 0.05;     // 65,60,55,50,45,40
+            var sr = 0.4 - (n - 9) * 0.01;               // 39,38,37...
+            return sr < 0.01 ? 0.01 : sr;
+        }
+        function resetGoalieRate(team) {
+            for (var rg = 0; rg < sticks.length; rg++) {
+                if (sticks[rg].goalie && sticks[rg].team === team) sticks[rg].saveTry = 0;   // 🔄 被进球→扑救率重置！
+            }
+        }
+        function goalieStick(team) {
+            for (var gs2 = 0; gs2 < sticks.length; gs2++) {
+                if (sticks[gs2].goalie && sticks[gs2].team === team) return sticks[gs2];
+            }
+            return null;
+        }
         var soccerBtn = document.getElementById('soccer-btn');
         soccerBtn.addEventListener('click', function () {
             soccerMode = !soccerMode;
@@ -1837,7 +1864,7 @@
                 if (spd > 7) { b.vx = b.vx / spd * 7; b.vy = b.vy / spd * 7; }
 
                 // ⬜ 画布四边：撞边反弹（足球模式：球门口的球能滚进门！）
-                var atGoalMouth = soccerMode && Math.abs(b.y - goalCY) < 60;
+                var atGoalMouth = soccerMode && ((Math.abs(b.y - goalCY) < goalHalfFor(0) && b.x < 60) || (Math.abs(b.y - goalCY) < goalHalfFor(1) && b.x > W - 60));
                 if (!(atGoalMouth && b.x < 30) && b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.85; }
                 if (!(atGoalMouth && b.x > W - 30) && b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.85; }
                 if (atGoalMouth) {   // 🥅 进门区域：别飞出画布
@@ -1903,12 +1930,44 @@
                 for (var scI = 0; scI < balls.length; scI++) {
                     var scb = balls[scI];
                     if (scb.held) continue;
-                    if (scb.x < 4 && Math.abs(scb.y - goalCY) < 60) {
-                        scores[1]++; goalFlash = 70; flashText = '⚽ GOAL！右队得分！';
-                        scb.x = W / 2; scb.y = goalCY - 50; scb.vx = 0; scb.vy = 0; scb.thrown = 0;
-                    } else if (scb.x > W - 4 && Math.abs(scb.y - goalCY) < 60) {
-                        scores[0]++; goalFlash = 70; flashText = '⚽ GOAL！左队得分！';
-                        scb.x = W / 2; scb.y = goalCY - 50; scb.vx = 0; scb.vy = 0; scb.thrown = 0;
+                    if (scb.x < 22 && Math.abs(scb.y - goalCY) < goalHalfFor(0)) {
+                        // 🧤 球到守门员面前：按红门守门员扑救率判定！
+                        if (!scb.rolled) {   // 每个球只判定一次
+                            scb.rolled = true;
+                            var gks0 = goalieStick(0);
+                            var r0 = saveRateFrom(gks0 ? (gks0.saveTry || 0) : 0);
+                            if (Math.random() < r0) {
+                                // ✅ 扑救成功：射来的球反弹回去！
+                                if (gks0) gks0.saveTry = (gks0.saveTry || 0) + 1;
+                                scb.vx = 6; scb.vy = (goalCY - scb.y) * 0.18; scb.thrown = 0;
+                                goalFlash = 45; flashText = '🧤 红门扑救成功！（' + Math.round(r0 * 100) + '%）';
+                            }
+                            // ❌ 扑救失败：不反弹，球直接穿过去！
+                        }
+                        if (scb.x < 4) {   // 球完全进门 → 进球！
+                            scores[1]++; goalFlash = 70; flashText = '⚽ GOAL！右队得分！';
+                            resetGoalieRate(0);   // 🔄 被进球：红门守门员扑救率重置 90%！
+                            scb.x = W / 2; scb.y = goalCY - 24; scb.vx = 0; scb.vy = 0; scb.thrown = 0; scb.rolled = false;
+                        }
+                    } else if (scb.x > W - 22 && Math.abs(scb.y - goalCY) < goalHalfFor(1)) {
+                        // 🧤 球到蓝门守门员面前！
+                        if (!scb.rolled) {
+                            scb.rolled = true;
+                            var gks1 = goalieStick(1);
+                            var r1 = saveRateFrom(gks1 ? (gks1.saveTry || 0) : 0);
+                            if (Math.random() < r1) {
+                                if (gks1) gks1.saveTry = (gks1.saveTry || 0) + 1;
+                                scb.vx = -6; scb.vy = (goalCY - scb.y) * 0.18; scb.thrown = 0;
+                                goalFlash = 45; flashText = '🧤 蓝门扑救成功！（' + Math.round(r1 * 100) + '%）';
+                            }
+                        }
+                        if (scb.x > W - 4) {   // 球完全进门 → 进球！
+                            scores[0]++; goalFlash = 70; flashText = '⚽ GOAL！左队得分！';
+                            resetGoalieRate(1);   // 🔄 被进球：蓝门守门员扑救率重置 90%！
+                            scb.x = W / 2; scb.y = goalCY - 24; scb.vx = 0; scb.vy = 0; scb.thrown = 0; scb.rolled = false;
+                        }
+                    } else {
+                        scb.rolled = false;   // 球远离球门：下次重新判定
                     }
                 }
             }
@@ -1952,35 +2011,59 @@
 
                 // ⚽ 守门员：守在自家球门前，追球扑救！
                 if (soccerMode && s.goalie) {
-                    // 🧤 守门员只能在自家球门这一侧自由移动！（左门员只在左侧区域）
-                    var gMinX = s.team === 0 ? 2 : W - 46;
-                    var gMaxX = s.team === 0 ? 46 : W - 2;
-                    var nbX = W / 2, nbY = goalCY, nbD = 1e9;
+                    // 🧤 守门员就站在球门正前方（紧贴门，中间没有空隙！），上下移动封堵
+                    var gx = s.team === 0 ? 20 : W - 20;   // 🧤 站在球门正前方，不贴网！
+                    s.x = gx;
+                    var nbY = goalCY, nbD = 1e9;
                     for (var gk = 0; gk < balls.length; gk++) {
                         if (balls[gk].held) continue;
-                        var gkk = Math.abs(balls[gk].x - s.x) + Math.abs(balls[gk].y - s.y);
-                        if (gkk < nbD) { nbD = gkk; nbX = balls[gk].x; nbY = balls[gk].y; }
+                        var gkk = Math.abs(balls[gk].y - s.y);
+                        if (gkk < nbD) { nbD = gkk; nbY = balls[gk].y; }
                     }
-                    s.x += (nbX - s.x) * 0.12;   // 🆓 在自家区域自由移动
-                    s.y += (nbY - s.y) * 0.12;
-                    s.x = Math.max(gMinX, Math.min(gMaxX, s.x));
-                    s.y = Math.max(goalCY - 58, Math.min(goalCY + 58, s.y));
+                    s.y += (nbY - s.y) * 0.15 * s.spd;   // 追着球上下移动
+                    var gh2 = goalHalfFor(s.team);
+                    s.y = Math.max(goalCY - gh2 + 4, Math.min(goalCY + gh2 - 4, s.y));   // 🚧 上下不出球门，堵死门！
                     s.w += 0.15;
-                    // 🧤 扑救！把到门前的球踢回场里！
-                    for (var gk2 = 0; gk2 < balls.length; gk2++) {
-                        var gb2 = balls[gk2];
-                        if (gb2.held) continue;
-                        var gd2 = Math.sqrt((gb2.x - s.x) * (gb2.x - s.x) + (gb2.y - s.y) * (gb2.y - s.y));
-                        if (gd2 < 20) {
-                            gb2.vx = (s.team === 0 ? 1 : -1) * 6;
-                            gb2.vy = (H / 2 - gb2.y) * 0.12;
-                            if (gb2.thrown > 0) { goalFlash = 45; flashText = '🧤 守门员扑救！'; }
-                            gb2.thrown = 0;
-                        }
-                    }
                     continue;
                 }
 
+                // 🛹 滑铲动作：偶尔朝球滑过去踢飞！
+                if (s.slideT > 0) {
+                    s.slideT--;
+                    s.x += s.slideDir * 5 * s.spd;   // 🛹 滑得更快更远！
+                    s.w += 0.35;
+                    for (var kk = 0; kk < balls.length; kk++) {
+                        var kb = balls[kk];
+                        if (kb.held) continue;
+                        var kd = Math.sqrt((kb.x - s.x) * (kb.x - s.x) + (kb.y - s.y) * (kb.y - s.y));
+                        if (kd < 24 && kb.y > s.y - 12) {   // 滑到球了：踢飞！
+                            kb.vx = s.slideDir * 8;
+                            kb.vy = -4;
+                            kb.thrown = 10;
+                            kb.fromStick = si;
+                            s.slideT = 0;
+                        }
+                    }
+                    if (s.x < 10 || s.x > W - 10) s.slideT = 0;
+                    if (s.slideT <= 0) s.mode = 'walk';
+                    continue;
+                }
+                // 🛹 滑铲：球越近越容易铲，球很远也有一定概率铲！（足球模式）
+                if (soccerMode && s.mode === 'walk') {
+                    var nbDist = 1e9;
+                    for (var kk2 = 0; kk2 < balls.length; kk2++) {
+                        if (balls[kk2].held) continue;
+                        var dq = Math.abs(balls[kk2].x - s.x) + Math.abs(balls[kk2].y - s.y);
+                        if (dq < nbDist) nbDist = dq;
+                    }
+                    if (nbDist < 1e9) {
+                        var slideP = 0.02 * Math.max(0.12, 130 / (nbDist + 30));   // 近球 ~4%，远球也有概率！
+                        if (Math.random() < slideP) {
+                            s.slideT = 24;   // 滑得更久更远
+                            s.slideDir = s.face;
+                        }
+                    }
+                }
                 if (s.mode === 'walk') {
                     if (soccerMode) s.throwCd -= 2; else s.throwCd--;   // ⚽ 进攻队员更勤快！
                     if (soccerMode) {
@@ -1992,11 +2075,11 @@
                             if (ddx4 < bdX) { bdX = ddx4; ballX2 = balls[bk4].x; }
                         }
                         s.face = ballX2 > s.x ? 1 : -1;
-                        s.x += s.face * 1.1;
+                        s.x += s.face * 1.1 * s.spd;   // 🏃 跑得快的抢球更厉害！
                         s.w += 0.15;
                     } else {
                         if (Math.random() < 0.006) s.face = -s.face;   // 偶尔换方向
-                        s.x += s.face * 0.8;
+                        s.x += s.face * 0.8 * s.spd;
                         s.w += 0.12;                                   // 走路摆腿
                     }
                     if (s.x < 14) { s.x = 14; s.face = 1; }
@@ -2049,7 +2132,7 @@
                         // 走向小球去捡
                         var dx3 = cb2.x - s.x;
                         s.face = dx3 > 0 ? 1 : -1;
-                        s.x += s.face * 1.2;
+                        s.x += s.face * 1.2 * s.spd;   // 🏃 捡球速度×个人速度
                         s.w += 0.18;
                         var cbd3 = Math.sqrt((cb2.x - s.x) * (cb2.x - s.x) + (cb2.y - s.y) * (cb2.y - s.y));
                         if (cbd3 < 30) {
@@ -2099,10 +2182,64 @@
                 var b = balls[i];
                 ctx.drawImage(b.sprite, b.x - b.sprite.width / 2, b.y - b.sprite.height / 2);
             }
-            // 🧍 画火柴人（走路摆腿 + 被砸躺地！）
+            // ⚽ 球门框画在最底层（火柴人和守门员站在球门前面！）
+            if (soccerMode) {
+                function drawGoal(gx, gh) {
+                    var dir = gx < W / 2 ? 1 : -1;   // 门口朝场中间
+                    var topY = goalCY - gh;          // 🥅 门顶 = 守门员头顶（一样高！）
+                    var botY = goalCY + gh;          // 🥅 门底
+                    var depth = 10;                  // 门框深度
+                    // 白色门框：两根门柱 + 横梁（和守门员一样高！）
+                    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, topY); ctx.lineTo(gx, botY);                    // 后柱
+                    ctx.moveTo(gx + dir * depth, topY); ctx.lineTo(gx + dir * depth, botY);   // 前柱
+                    ctx.moveTo(gx, topY); ctx.lineTo(gx + dir * depth, topY);      // 横梁
+                    ctx.stroke();
+                    // 球网（细网格，和守门员一样高的门）
+                    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                    ctx.lineWidth = 1;
+                    for (var gy2 = topY + 3; gy2 < botY; gy2 += 4) {
+                        ctx.beginPath(); ctx.moveTo(gx, gy2); ctx.lineTo(gx + dir * depth, gy2); ctx.stroke();
+                    }
+                    for (var gi3 = 1; gi3 < 3; gi3++) {
+                        var gx3 = gx + dir * depth * gi3 / 3;
+                        ctx.beginPath(); ctx.moveTo(gx3, topY); ctx.lineTo(gx3, botY); ctx.stroke();
+                    }
+                }
+                drawGoal(2, goalHalfFor(0));
+                drawGoal(W - 2, goalHalfFor(1));   // 🥅 右门也贴边！
+            }
+
+            // 🧍 画火柴人（走路摆腿 + 被砸躺地！）—— 站在球门前面！
             for (var si = 0; si < sticks.length; si++) {
                 var s = sticks[si];
-                var sz = s.size;
+                var sz = s.size * (s.goalie && soccerMode ? 0.72 : 1);   // 🧤 守门员矮一点！
+                if (s.slideT > 0) {
+                    // 🛹 滑铲：脚朝前滑出去！（不是头朝前！）
+                    var dirf = (s.slideDir || 1);
+                    ctx.strokeStyle = s.shirt || 'rgba(255,255,255,0.95)';
+                    ctx.lineWidth = 3 * sz;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(s.x + dirf * 9 * sz, s.y);                    // 🦶 脚在前！
+                    ctx.lineTo(s.x, s.y - 4 * sz);                          // 身体
+                    ctx.lineTo(s.x - dirf * 8 * sz, s.y - 4 * sz);          // 头在后
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(s.x - dirf * 8 * sz, s.y - 4 * sz, 3 * sz, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    ctx.fill();
+                    // 号码
+                    if (s.num) {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold ' + Math.round(7 * sz) + 'px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(s.num, s.x, s.y - 9 * sz);
+                    }
+                    continue;
+                }
                 if (s.react > 0) {
                     // 💫 被砸倒：躺在地上（横着，脚在左头在右）
                     ctx.beginPath();
@@ -2159,31 +2296,19 @@
                     ctx.stroke();
                 }
             }
-            // ⚽ 画球门 + 比分 + 进球提示！
+            // ⚽ 比分 + 进球提示（画在最上层！）
             if (soccerMode) {
-                var goalHalf = 60;
-                function drawGoal(gx) {
-                    var dir = gx < W / 2 ? 1 : -1;   // 门口朝场中间
-                    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(gx, goalCY - goalHalf); ctx.lineTo(gx, goalCY + goalHalf);       // 底线
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(gx + dir * 5, goalCY - goalHalf); ctx.lineTo(gx + dir * 5, goalCY + goalHalf);   // 门柱
-                    ctx.stroke();
-                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';   // 网
-                    ctx.lineWidth = 1;
-                    for (var gy2 = goalCY - goalHalf + 8; gy2 < goalCY + goalHalf; gy2 += 10) {
-                        ctx.beginPath(); ctx.moveTo(gx, gy2); ctx.lineTo(gx + dir * 5, gy2); ctx.stroke();
-                    }
-                }
-                drawGoal(2);
-                drawGoal(W - 7);
                 ctx.fillStyle = '#ffd93d';
                 ctx.font = 'bold 15px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('⚽ 左队 ' + scores[0] + ' : ' + scores[1] + ' 右队', W / 2, 20);
+                var rate0 = 0.9, rate1 = 0.9;
+                for (var rg2 = 0; rg2 < sticks.length; rg2++) {
+                    if (sticks[rg2].goalie) {
+                        if (sticks[rg2].team === 0) rate0 = saveRateFrom(sticks[rg2].saveTry || 0);
+                        else rate1 = saveRateFrom(sticks[rg2].saveTry || 0);
+                    }
+                }
+                ctx.fillText('⚽ 左队 ' + scores[0] + ' : ' + scores[1] + ' 右队 · 🧤 红门 ' + Math.round(rate0 * 100) + '% · 蓝门 ' + Math.round(rate1 * 100) + '%', W / 2, 20);
                 if (goalFlash > 0) {
                     goalFlash--;
                     ctx.font = 'bold 22px sans-serif';
