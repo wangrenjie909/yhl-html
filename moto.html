@@ -722,6 +722,46 @@
             border-radius: 0 8px 0 8px;
             white-space: nowrap;
         }
+        /* 🎁 路上道具 */
+        .item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            font-size: 30px;
+            line-height: 40px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+        #g-items {
+            position: absolute;
+            top: 40px;
+            left: 12px;
+            font-size: 13px;
+            color: #ffd93d;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            z-index: 20;
+        }
+        #item-msg {
+            position: absolute;
+            top: 34%;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffd93d;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 20;
+            pointer-events: none;
+        }
+        /* 🎮 游戏进行时：右上角摩托车徽章和页面内容强制隐藏（铁打的保险，怎么都不会弹出来！） */
+        body.in-game #current-bike-badge,
+        body.in-game #page-content {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -859,6 +899,7 @@
     <div id="game">
         <p id="g-score">得分：0</p>
         <p id="g-speed">⚡ 速度：0 km/h</p>
+        <p id="g-items"></p>
         <div id="road-canvas-wrap">
             <canvas id="road-canvas"></canvas>
         </div>
@@ -870,6 +911,7 @@
         <p id="boost-tip">🔥 极速中！小心转弯！</p>
         <button id="btn-boost">🔥 极速</button>
         <p id="curve-msg"></p>
+        <p id="item-msg"></p>
     </div>
 
     <button id="btn-secret" class="egg-btn" title="秘密">🥚</button>
@@ -945,6 +987,12 @@
     var spawnInterval = 900;
     var curveMsg = document.getElementById('curve-msg');
     var curveMsgTimer = null;
+    var items = [];          // 🎁 路上道具
+    var itemBoostLeft = 0;   // ⚡ 加速剩余帧数
+    var shieldLeft = 0;      // 🛡️ 护盾剩余帧数
+    var gItems = document.getElementById('g-items');
+    var itemMsg = document.getElementById('item-msg');
+    var itemMsgTimer = null;
     var slide = 0;
     var driftHeld = false;
     var btnDrift = document.getElementById('btn-drift');
@@ -1160,12 +1208,66 @@
         }
     }
 
+    // 🎁 道具：放一个在路上（⚡加速 / 🛡️护盾 / 💰金币）
+    function placeItemAt(s, lane) {
+        var it = document.createElement('div');
+        it.className = 'item';
+        var types = ['⚡', '🛡️', '💰'];
+        var tp = types[Math.floor(Math.random() * types.length)];
+        it.textContent = tp;
+        game.appendChild(it);
+        items.push({ el: it, s: s, lane: lane, type: tp });
+    }
+    // 🎁 前方大段路的道具提前刷好！（只有同车道很近才避开，道具多多的！）
+    function ensureItemsAhead() {
+        var maxS = s_m;
+        for (var i = 0; i < items.length; i++) if (items[i].s > maxS) maxS = items[i].s;
+        while (maxS < s_m + 30000) {
+            maxS += 260 + Math.random() * 220;   // 🎁 刷新很频繁！
+            var itLane = (Math.random() * 2 - 1) * (roadHalf - 45);
+            // 🚗 只有“同一条车道 + 离车很近”才跳过（不同车道可以和车共存）
+            var tooClose = false;
+            for (var ci = 0; ci < cars.length; ci++) {
+                if (Math.abs(cars[ci].s - maxS) < 160 && Math.abs(cars[ci].lane - itLane) < 110) { tooClose = true; break; }
+            }
+            if (tooClose) continue;
+            placeItemAt(maxS, itLane);
+        }
+    }
+    // 🎁 捡到道具就使用！
+    function useItem(tp) {
+        if (tp === '⚡') {
+            itemBoostLeft = 150;
+            showItemMsg('⚡ 捡到加速！冲冲冲！');
+        } else if (tp === '🛡️') {
+            shieldLeft = 180;
+            showItemMsg('🛡️ 捡到护盾！无敌 3 秒！');
+        } else if (tp === '💰') {
+            score += 500;
+            showItemMsg('💰 捡到金币 +50！');
+        }
+        updateItemsHud();
+    }
+    function showItemMsg(txt) {
+        itemMsg.textContent = txt;
+        itemMsg.style.display = 'block';
+        clearTimeout(itemMsgTimer);
+        itemMsgTimer = setTimeout(function () { itemMsg.style.display = 'none'; }, 1500);
+    }
+    function updateItemsHud() {
+        var parts = [];
+        if (itemBoostLeft > 0) parts.push('⚡ 加速 ' + Math.ceil(itemBoostLeft / 60) + 's');
+        if (shieldLeft > 0) parts.push('🛡️ 护盾 ' + Math.ceil(shieldLeft / 60) + 's');
+        gItems.textContent = parts.join(' · ');
+    }
+
     // ---- 开始游戏：内容飞走，游戏全屏，先弹玩法说明！ ----
     function startMotoGame() {
         content.classList.remove('fly-down');
         content.classList.add('fly-up');
         game.classList.add('full');
         game.style.display = 'block';
+        document.body.classList.add('in-game');   // 🎮 游戏时强制隐藏徽章和页面内容！
         document.getElementById('current-bike-badge').style.display = 'none';   // 游戏时藏起右上角徽章
         game.style.transform = '';
         setupScene();   // 准备场景（不开始）
@@ -1177,6 +1279,12 @@
         startBtn.textContent = '🏁 开始游戏';
         cars.forEach(function (cc) { cc.el.remove(); });
         cars = [];
+        items.forEach(function (it) { it.el.remove(); });
+        items = [];
+        itemBoostLeft = 0;
+        shieldLeft = 0;
+        gItems.textContent = '';
+        itemMsg.style.display = 'none';
         score = 0;
         driftPts = 0;
         gScore.textContent = '得分：0 · 过弯：0';
@@ -1262,8 +1370,16 @@
         steer += touchSteer;
         // 🏍️ 每辆车的固定速度和操控！
         var b = currentBrand || { speed: 5.5, control: 6, boost: 16 };
-        var turnRate = 0.035 + b.control * 0.005;   // 操控越好，转得越快
+        var turnRate = (0.045 + b.control * 0.0055) * (1 + b.price / 1800);   // 💰 越贵转弯越厉害！
         head += steer * (boosting ? 0.03 : (wheelie ? turnRate * 1.3 : turnRate));
+        // 🧭 车头自动回正 + 最大偏角（贵的车能压弯更大角度！）
+        var rdaNow = roadDirAt(s_m);
+        var dNow = rdaNow - head;
+        var maxAng = 0.4 + b.price / 3000;   // 便宜车 23°，顶级车 51°！
+        if (dNow > maxAng) dNow = maxAng;
+        if (dNow < -maxAng) dNow = -maxAng;
+        head = rdaNow - dNow;
+        head += (rdaNow - head) * 0.08;
         var throttle = 0;
         if (keys['arrowup'] || keys['w']) throttle += 1;
         if (keys['arrowdown'] || keys['s']) throttle -= 1;
@@ -1272,7 +1388,8 @@
         var speedTarget = boosting ? b.boost : (wheelie ? b.speed + 2 : b.speed) + throttle * 2;
         if (drifting) speedTarget -= 1.5;                    // 💨 漂移时稍微减速（约15 km/h）
         if (driftBoostLeft > 0) { driftBoostLeft--; speedTarget += 3; }   // 💥 漂完的加速（约30 km/h）
-        speedTarget = Math.max(0, Math.min(boosting ? 20 : 12, speedTarget));   // 🚫 不倒车，只前进！
+        if (itemBoostLeft > 0) { itemBoostLeft--; speedTarget += 4; }    // ⚡ 道具加速（约40 km/h）！
+        speedTarget = Math.max(0, Math.min(boosting || itemBoostLeft > 0 ? 20 : 12, speedTarget));   // 🚫 不倒车，只前进！道具加速可突破上限！
         currentSpeed += (speedTarget - currentSpeed) * 0.08;   // 平滑加速/减速
         if (Math.abs(speedTarget - currentSpeed) < 0.05) currentSpeed = speedTarget;
         var speed = currentSpeed;
@@ -1291,7 +1408,7 @@
         var at = roadAt(s_m);
         camX = at.x;                     // 📷 镜头固定在路中心！
         camY = at.y;
-        camA = head;   // 👁️ 视角跟着你转！
+        camA = at.a;   // 👁️ 视角跟着路面方向转！（直道稳定不失控，弯道才跟着转！）
         var motoWX = camX + Math.cos(at.a) * latM;   // 摩托车真实位置
         var motoWY = camY + Math.sin(at.a) * latM;
 
@@ -1348,9 +1465,9 @@
             wheelieTip.style.display = 'none';
             turnRisk = 0;
             var driftAng = Math.max(-28, Math.min(28, slide * 4));
+            var headAng = Math.max(-50, Math.min(50, (head - rda) * 180 / Math.PI));   // 🏍️ 车头压弯角度
             if (drifting) moto.style.transform = 'rotate(' + driftAng + 'deg)';
-            else if (steer !== 0) moto.style.transform = 'rotate(' + (steer * 10) + 'deg)';
-            else moto.style.transform = '';
+            else moto.style.transform = 'rotate(' + (headAng + steer * 6) + 'deg)';   // 压弯！不横滑！
         }
 
         // 🚗 车：自己在动，迎面向你驶来！（转弯时跟着弯道真转弯）
@@ -1367,8 +1484,8 @@
             var wx = at.x + Math.cos(at.a) * car.lane;
             var wy = at.y + Math.sin(at.a) * car.lane;
             var sp = toScreen(wx, wy);
-            // 只藏掉“很远处”的车（转弯时近处的车会从屏幕边缘自然滑进来，不突然冒出来）
-            if (car.s < s_m - 400 || car.s > s_m + game.clientHeight + 6000) {
+            // 🚗 只在屏幕附近的车才显示（远处先藏好，转弯时不会突然甩出来！）
+            if (car.s < s_m - 400 || car.s > s_m + game.clientHeight + 350) {
                 car.el.style.display = 'none';
             } else {
                 car.el.style.display = 'block';
@@ -1384,10 +1501,48 @@
             var rx = dx * Math.cos(camA) + dy * Math.sin(camA);
             var ry = -dx * Math.sin(camA) + dy * Math.cos(camA);
             if (Math.abs(rx) < (MOTO_W + 70) / 2 && Math.abs(ry) < (MOTO_H + 150) / 2) {
+                if (shieldLeft > 0) {
+                    // 🛡️ 护盾：把车弹开，继续跑！
+                    car.lane += (car.lane - latM > 0 ? 1 : -1) * 80;
+                    continue;
+                }
                 endMotoGame('💥 撞车啦！');
                 return;
             }
         }
+
+        // 🎁 道具：刷新 + 压到就捡起来用！
+        ensureItemsAhead();
+        for (var ii = items.length - 1; ii >= 0; ii--) {
+            var item = items[ii];
+            item.s -= carMoveSpeed;
+            if (item.s < s_m - 200) {
+                item.el.remove();
+                items.splice(ii, 1);
+                continue;
+            }
+            var iat = roadAt(item.s);
+            var iwx = iat.x + Math.cos(iat.a) * item.lane;
+            var iwy = iat.y + Math.sin(iat.a) * item.lane;
+            var isp = toScreen(iwx, iwy);
+            if (item.s < s_m - 400 || item.s > s_m + game.clientHeight + 350) {
+                item.el.style.display = 'none';
+            } else {
+                item.el.style.display = 'block';
+                item.el.style.left = (isp.x - 20) + 'px';
+                item.el.style.top = (isp.y - 20) + 'px';
+            }
+            // 🎯 压到道具就捡起来用！
+            if (Math.abs(iwx - motoWX) < 60 && Math.abs(iwy - motoWY) < 60) {
+                item.el.remove();
+                items.splice(ii, 1);
+                useItem(item.type);
+            }
+        }
+        updateItemsHud();
+        // 🛡️ 护盾特效：摩托车发光！
+        moto.style.filter = shieldLeft > 0 ? 'drop-shadow(0 0 14px #4dd0e1)' : '';
+        if (shieldLeft > 0) shieldLeft--;   // 🛡️ 倒计时放最后：蓝光一灭就是真的没护盾了（不会再"看着蓝光却撞车"！）
 
         // 🛣️ 画路面 + 👁️ 转弯时视野扩大（相机已旋转跟随）
         // 🛣️ 边走边生成更远的路，前方永远延伸！
@@ -1408,6 +1563,7 @@
         content.classList.add('fly-down');
         game.classList.remove('full');
         game.style.display = 'none';
+        document.body.classList.remove('in-game');   // 🎮 游戏结束，页面内容回来！
         document.getElementById('current-bike-badge').style.display = 'block';   // 徽章回来！
         game.style.transform = '';
         // 🏆 记录最高得分 + 赚积分 + 查成就
@@ -1433,6 +1589,7 @@
         moto.style.transform = '';
         wheelieTip.style.display = 'none';
         curveMsg.style.display = 'none';
+        itemMsg.style.display = 'none';
     }
 
     // 手机：左滑右滑转向，上滑加速下滑刹车
